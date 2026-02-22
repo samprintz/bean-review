@@ -1,26 +1,17 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code)
+when working with code in this repository.
 
 ## Project Overview
 
-`beancount-reviewer` is a Python application.
-It is a TUI.
-It allows the user to manually review transactions.
+See `PROJECT_SPEC.md` for the project specification.
 
-The application reads transactions from stdin and writes the reviewed transactions to stdout.
+## Instructions
 
-Transactions are in Beancount format (https://beancount.github.io/docs/beancount_language_syntax.html):
+### Use the project specification
 
-```
-2002-02-20 * "Grocery store"
-  Assets:Cash      -5.99 EUR
-  Expenses:Food     5.99 EUR
-```
-
-Use `beancount` module for parsing and handling transactions,
-e.g. `beancount.loader` or `beancount.parser.printer`.
-It uses the types provided by `beancount` for transactions, postings, etc.,
-see `beancount.core.data`.
-
-Use `textual` as TUI module.
+Whenever you change code, check the project specification file `PROJECT_SPEC.md`.
+When you are told to apply changes that contradict the project specification,
+a) tell it the user
+b) update the project specification.

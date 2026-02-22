@@ -75,10 +75,12 @@ def create_review_file(
     return ReviewFile(filename=filename, transactions=review_txns)
 
 
-def output_transactions(review_file: ReviewFile) -> None:
-    """Output all transactions to stdout."""
-    for review_txn in review_file.transactions:
-        print(printer.format_entry(review_txn.directive))
+def output_transactions(review_file: ReviewFile, ledger_file: str) -> None:
+    """Append all transactions to the ledger file."""
+    with open(ledger_file, 'a') as f:
+        for review_txn in review_file.transactions:
+            f.write('\n')
+            f.write(printer.format_entry(review_txn.directive))
 
 
 def main() -> None:
@@ -116,7 +118,10 @@ def main() -> None:
     app.run()
 
     if app.should_save:
-        output_transactions(app.review_file)
+        if not config.ledger_file:
+            print("Error: No ledger file configured. Use --ledger-file or set BEANCOUNT_FILE.", file=sys.stderr)
+            sys.exit(1)
+        output_transactions(app.review_file, config.ledger_file)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@
 to review beancount transactions.
 The app reads transactions from an input file,
 allows manual review/editing,
-and writes reviewed transactions to stdout.
+and appends reviewed transactions to the main ledger file.
 
 ## Requirements
 

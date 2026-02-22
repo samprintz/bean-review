@@ -1,0 +1,25 @@
+;; -*- mode: beancount -*-
+
+**** ~/Beancount/Import/Transactions_2024.02.17-test.csv
+
+2024-02-01 * "Grocery Store" "Weekly groceries"
+  Assets:Checking    -45.99 EUR
+  Expenses:Food       45.99 EUR
+
+2024-02-02 ! "Gas Station" "Fuel"
+  Assets:Checking    -60.00 EUR
+  Expenses:Transport  60.00 EUR
+
+2024-02-03 * "Coffee Shop"
+  Assets:Cash         -5.50 EUR
+  Expenses:Food        5.50 EUR
+
+**** ~/Beancount/Import/Transactions_2025.02.17-test.csv
+
+2024-02-04 ! "Amazon" "Electronics"
+  Assets:Checking   -199.99 EUR
+  Expenses:Shopping  199.99 EUR
+
+2024-02-05 * "Utility Company" "Electricity bill"
+  Assets:Checking    -85.00 EUR
+  Expenses:Utilities  85.00 EUR

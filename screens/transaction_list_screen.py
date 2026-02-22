@@ -92,6 +92,10 @@ class TransactionListScreen(Screen):
     ListView > ListItem.--highlight {
         background: $accent;
     }
+
+    #transaction-list > ListItem.suggestion-selected {
+        background: $accent;
+    }
     """
 
     def __init__(
@@ -160,43 +164,49 @@ class TransactionListScreen(Screen):
         list_view = self.query_one("#transaction-list", ListView)
         list_view.focus()
 
-    def _restore_position_and_focus(self, current_idx: int | None) -> None:
-        """Centralized method to restore position, focus, and highlight."""
+    def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
+        """Update selection class when highlighted item changes."""
         list_view = self.query_one("#transaction-list", ListView)
+        for i, item in enumerate(list_view.children):
+            if isinstance(item, TransactionListItem):
+                if i == list_view.index:
+                    item.add_class("suggestion-selected")
+                else:
+                    item.remove_class("suggestion-selected")
+
+    def _restore_position_and_focus(self, current_idx: int | None) -> None:
+        """Find list position for transaction index and rebuild with highlight."""
+        highlight_pos = 0
         if current_idx is not None:
             visible = self._get_visible_transactions()
             for list_idx, (real_idx, _) in enumerate(visible):
                 if real_idx == current_idx:
-                    list_view.index = list_idx
+                    highlight_pos = list_idx
                     break
-        list_view.focus()
-        list_view.refresh()
-        # Explicitly update highlight class
-        children = list(list_view.children)
-        if list_view.index is not None and 0 <= list_view.index < len(children):
-            for i, item in enumerate(children):
-                if isinstance(item, TransactionListItem):
-                    if i == list_view.index:
-                        item.add_class("suggestion-selected")
-                    else:
-                        item.remove_class("suggestion-selected")
+        self._rebuild_list(highlight_index=highlight_pos)
+        self.query_one("#transaction-list", ListView).focus()
 
     def on_mount(self) -> None:
         """Populate and focus the list view on mount."""
         self._active_footer = "main"
-        self._rebuild_list()
+        self._rebuild_list(highlight_index=0)
         self._update_footer_status()
-        current_idx = self._get_current_transaction_index()
-        self._restore_position_and_focus(current_idx)
+        self.query_one("#transaction-list", ListView).focus()
 
-    def _rebuild_list(self) -> None:
-        """Rebuild the transaction list."""
+    def _rebuild_list(self, highlight_index: int = 0) -> None:
+        """Rebuild the transaction list with highlighting."""
         list_view = self.query_one("#transaction-list", ListView)
         list_view.clear()
 
         transactions = self._get_visible_transactions()
-        for i, txn in transactions:
-            list_view.append(TransactionListItem(txn, i))
+        for list_idx, (real_idx, txn) in enumerate(transactions):
+            item = TransactionListItem(txn, real_idx)
+            if list_idx == highlight_index:
+                item.add_class("suggestion-selected")
+            list_view.append(item)
+
+        if transactions:
+            list_view.index = highlight_index
 
     def _get_visible_transactions(self) -> list[tuple[int, ReviewTransaction]]:
         """Get transactions to display based on filter state."""
@@ -252,18 +262,15 @@ class TransactionListScreen(Screen):
 
     def _cursor_down(self) -> None:
         """Move cursor down."""
-        list_view = self.query_one("#transaction-list", ListView)
-        list_view.action_cursor_down()
+        self.query_one("#transaction-list", ListView).action_cursor_down()
 
     def _cursor_up(self) -> None:
         """Move cursor up."""
-        list_view = self.query_one("#transaction-list", ListView)
-        list_view.action_cursor_up()
+        self.query_one("#transaction-list", ListView).action_cursor_up()
 
     def _goto_top(self) -> None:
         """Go to top of list."""
-        list_view = self.query_one("#transaction-list", ListView)
-        list_view.index = 0
+        self.query_one("#transaction-list", ListView).index = 0
 
     def _goto_bottom(self) -> None:
         """Go to bottom of list."""
@@ -278,12 +285,10 @@ class TransactionListScreen(Screen):
         visible = self._get_visible_transactions()
         if not visible:
             return
-        # Estimate items per page: ~4 lines per transaction (header + 2 postings + padding)
         items_per_page = max(1, list_view.size.height // 4)
         half_page = max(1, items_per_page // 2)
         current = list_view.index or 0
-        new_index = min(current + half_page, len(visible) - 1)
-        list_view.index = new_index
+        list_view.index = min(current + half_page, len(visible) - 1)
 
     def _half_page_up(self) -> None:
         """Move cursor up by half page (vim-like C-u)."""
@@ -291,12 +296,10 @@ class TransactionListScreen(Screen):
         visible = self._get_visible_transactions()
         if not visible:
             return
-        # Estimate items per page: ~4 lines per transaction (header + 2 postings + padding)
         items_per_page = max(1, list_view.size.height // 4)
         half_page = max(1, items_per_page // 2)
         current = list_view.index or 0
-        new_index = max(current - half_page, 0)
-        list_view.index = new_index
+        list_view.index = max(current - half_page, 0)
 
     def _toggle_select(self) -> None:
         """Toggle selection of current transaction."""
@@ -304,7 +307,6 @@ class TransactionListScreen(Screen):
         if idx is not None:
             txn = self.review_file.transactions[idx]
             txn.selected = not txn.selected
-            self._rebuild_list()
             self._restore_position_and_focus(idx)
 
     def _next_incomplete(self) -> None:
@@ -336,9 +338,10 @@ class TransactionListScreen(Screen):
 
     def _filter_incomplete_toggle(self) -> None:
         """Toggle filter to show only incomplete transactions."""
+        current_idx = self._get_current_transaction_index()
         self._filter_incomplete = not self._filter_incomplete
         self._update_footer_state()
-        self._rebuild_list()
+        self._restore_position_and_focus(current_idx)
 
     def _toggle_complete(self) -> None:
         """Toggle complete/incomplete flag for selected or current transaction."""
@@ -357,19 +360,8 @@ class TransactionListScreen(Screen):
             txn = self.review_file.transactions[idx]
             self.review_file.transactions[idx] = txn.toggle_complete()
 
-        self._rebuild_list()
         self._update_footer_status()
-
-        # Restore position and focus
-        list_view = self.query_one("#transaction-list", ListView)
-        if current_idx is not None:
-            visible = self._get_visible_transactions()
-            for list_idx, (real_idx, _) in enumerate(visible):
-                if real_idx == current_idx:
-                    list_view.index = list_idx
-                    break
-        list_view.focus()
-        list_view.refresh()
+        self._restore_position_and_focus(current_idx)
 
     def _edit_category(self) -> None:
         """Show footer to edit category/account."""
@@ -412,7 +404,6 @@ class TransactionListScreen(Screen):
             new_directive = directive._replace(postings=new_postings)
             self.review_file.transactions[idx] = txn.with_directive(new_directive)
 
-        self._rebuild_list()
         self._restore_position_and_focus(current_idx)
 
     def _edit_narration(self, mode: str) -> None:
@@ -472,7 +463,6 @@ class TransactionListScreen(Screen):
             new_directive = directive._replace(narration=new_narration)
             self.review_file.transactions[idx] = txn.with_directive(new_directive)
 
-        self._rebuild_list()
         self._restore_position_and_focus(current_idx)
 
     def on_edit_text_footer_submitted(self, event: EditTextFooter.Submitted) -> None:
@@ -580,7 +570,6 @@ class TransactionListScreen(Screen):
                         edited_txns[i]
                     )
 
-            self._rebuild_list()
             self._update_footer_status()
             self._restore_position_and_focus(current_idx)
         finally:
@@ -592,11 +581,12 @@ class TransactionListScreen(Screen):
 
     def _invert_selection(self) -> None:
         """Invert selection of all visible transactions."""
+        current_idx = self._get_current_transaction_index()
         visible = self._get_visible_transactions()
         for idx, _ in visible:
             txn = self.review_file.transactions[idx]
             txn.selected = not txn.selected
-        self._rebuild_list()
+        self._restore_position_and_focus(current_idx)
 
     def _save(self) -> None:
         """Show save confirmation footer."""

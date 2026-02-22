@@ -449,7 +449,7 @@ class TransactionListScreen(Screen):
         footer = EditTextFooter(
             initial_value=initial_value,
             cursor_position=cursor_position,
-            placeholder="Edit narration (Escape to cancel)",
+            placeholder="Edit narration (Esc to cancel)",
             id="edit-footer",
         )
         self.mount(footer)

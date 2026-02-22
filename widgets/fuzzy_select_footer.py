@@ -84,7 +84,7 @@ class FuzzySelectFooter(Widget):
 
     def compose(self) -> ComposeResult:
         yield ListView(id="fuzzy-suggestions")
-        yield Input(placeholder="Escape to cancel", id="fuzzy-input")
+        yield Input(placeholder="Esc to cancel", id="fuzzy-input")
 
     def on_mount(self) -> None:
         """Initialize suggestions list and focus input."""

@@ -45,7 +45,7 @@ class EditTextFooter(Widget):
         self,
         initial_value: str = "",
         cursor_position: int | None = None,
-        placeholder: str = "Escape to cancel",
+        placeholder: str = "Esc to cancel",
         name: str | None = None,
         id: str | None = None,
         classes: str | None = None,

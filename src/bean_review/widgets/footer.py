@@ -6,7 +6,7 @@ from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
 
-from keymap import Keymap
+from ..keymap import Keymap
 
 
 class Footer(Widget):

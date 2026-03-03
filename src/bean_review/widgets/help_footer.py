@@ -6,7 +6,7 @@ from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import Static
 
-from keymap import Keymap
+from ..keymap import Keymap
 
 
 class HelpFooter(Widget):

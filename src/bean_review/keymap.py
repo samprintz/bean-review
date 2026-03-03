@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from config import Config
+from .config import Config
 
 
 @dataclass

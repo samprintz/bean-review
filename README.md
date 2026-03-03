@@ -1,14 +1,30 @@
 # beancount-reviewer
 
+## Installation
+
+As executable:
+
+```bash
+pipx install .
+```
+
+For development:
+
+```bash
+pyenv virtualenv bean-review
+pyenv activate bean-review
+pip install -e .
+```
+
 ## Usage
 
 Call with input file:
 
-    python beancount-reviewer.py <input_file>
+    bean-review <input_file>
 
 Directly read from beangulp importer output:
 
-    python beancount-reviewer.py <(python import.py extract $BEANCOUNT_IMPORT_DIR)
+    bean-review <(python import.py extract $BEANCOUNT_IMPORT_DIR)
 
 ## Configuration
 

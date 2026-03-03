@@ -10,10 +10,10 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, Label, ListItem, ListView
 
-from config import Config
-from keymap import Keymap
-from models import load_accounts_from_ledger, ReviewFile, ReviewTransaction
-from widgets import ConfirmFooter, EditTextFooter, Footer, FuzzySelectFooter, HelpFooter
+from ..config import Config
+from ..keymap import Keymap
+from ..models import load_accounts_from_ledger, ReviewFile, ReviewTransaction
+from ..widgets import ConfirmFooter, EditTextFooter, Footer, FuzzySelectFooter, HelpFooter
 
 
 class TransactionListItem(ListItem):

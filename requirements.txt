@@ -1,4 +1,0 @@
-beancount
-beangulp
-pytest
-textual

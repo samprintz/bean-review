@@ -20,6 +20,8 @@ and appends reviewed transactions to the main ledger file.
 - `u` toggles complete status (focused or all selected)
 - `c` opens account selector (focused or all selected)
 - `A`/`I`/`S` edits narration (append/insert/substitute mode)
+- `P` predicts account for focused or selected transactions (requires `--ai-host`)
+- `g P` predicts accounts for all unconfirmed transactions (requires `--ai-host`)
 - `n`/`p` jumps to next/previous incomplete transaction
 - `Z` filters to show only incomplete transactions
 - `w` writes transactions (with confirm)

@@ -41,3 +41,12 @@ Priority (descending):
 1. CLI: `--ledger-file`
 2. Config: `[general]` → `ledger_file`
 3. Environment: `BEANCOUNT_FILE`
+
+### AI Account Prediction
+
+Use an AI service to predict accounts based on narrations:
+
+    bean-review input.beancount --ai-host localhost
+
+The AI service should accept POST requests to `/predict`
+with a JSON body containing `{"narrations": ["..."]}` and return `{"accounts": ["..."]}`.

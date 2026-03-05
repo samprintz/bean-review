@@ -26,6 +26,8 @@ DEFAULT_KEYBINDINGS = {
     "edit_narration_append": "A",
     "edit_narration_insert": "I",
     "edit_narration_substitute": "S",
+    "predict_selected": "P",
+    "predict_all_unconfirmed": "g P",
     "save": "w",
     "quit": "q",
     "invert_selection": "v",
@@ -37,6 +39,8 @@ DEFAULT_KEYBINDINGS = {
 class Config:
     keybindings: dict[str, str] = field(default_factory=lambda: DEFAULT_KEYBINDINGS.copy())
     ledger_file: str | None = None
+    ai_host: str | None = None
+    ai_port: int = 8080
 
     def get_key(self, action: str) -> str:
         return self.keybindings.get(action, DEFAULT_KEYBINDINGS.get(action, ""))
@@ -52,12 +56,16 @@ def _resolve_path(path: str | None) -> str | None:
 def load_config(
     config_path: Path | str | None = None,
     ledger_file_override: str | None = None,
+    ai_host_override: str | None = None,
+    ai_port_override: int | None = None,
 ) -> Config:
     """Load configuration from file.
 
     Args:
         config_path: Path to config file. If None, uses default location.
         ledger_file_override: CLI override for ledger file path (highest priority).
+        ai_host_override: CLI override for AI service host.
+        ai_port_override: CLI override for AI service port.
 
     Returns:
         Config object with loaded or default settings.
@@ -94,5 +102,10 @@ def load_config(
         config.ledger_file = _resolve_path(config_file_ledger)
     elif env_ledger:
         config.ledger_file = _resolve_path(env_ledger)
+
+    if ai_host_override:
+        config.ai_host = ai_host_override
+    if ai_port_override:
+        config.ai_port = ai_port_override
 
     return config

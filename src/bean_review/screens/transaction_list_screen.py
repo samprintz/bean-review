@@ -10,6 +10,7 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, Label, ListItem, ListView
 
+from ..ai_client import predict_accounts
 from ..config import Config
 from ..keymap import Keymap
 from ..models import load_accounts_from_ledger, ReviewFile, ReviewTransaction
@@ -251,6 +252,8 @@ class TransactionListScreen(Screen):
             "edit_narration_append": lambda: self._edit_narration("append"),
             "edit_narration_insert": lambda: self._edit_narration("insert"),
             "edit_narration_substitute": lambda: self._edit_narration("substitute"),
+            "predict_selected": self._predict_selected,
+            "predict_all_unconfirmed": self._predict_all_unconfirmed,
             "invert_selection": self._invert_selection,
             "save": self._save,
             "quit": self._quit_app,
@@ -620,5 +623,118 @@ class TransactionListScreen(Screen):
 
         self._active_footer = "help"
         footer = HelpFooter(self.keymap, id="help-footer")
+        self.mount(footer)
+        footer.focus()
+
+    def _predict_selected(self) -> None:
+        """Predict accounts for selected or focused transactions."""
+        if not self.config.ai_host:
+            self._show_error("AI service not configured. Use --ai-host.")
+            return
+
+        current_idx = self._get_current_transaction_index()
+
+        selected_indices = [
+            i for i, t in enumerate(self.review_file.transactions) if t.selected
+        ]
+
+        if not selected_indices:
+            if current_idx is not None:
+                selected_indices = [current_idx]
+
+        if not selected_indices:
+            return
+
+        # Collect narrations
+        narrations = []
+        for idx in selected_indices:
+            txn = self.review_file.transactions[idx]
+            narration = txn.directive.narration or ""
+            narrations.append(narration)
+
+        # Run prediction in background worker
+        self.run_worker(
+            self._do_predict(selected_indices, narrations),
+            name="predict_selected",
+            exclusive=True,
+        )
+
+    def _predict_all_unconfirmed(self) -> None:
+        """Predict accounts for all incomplete transactions."""
+        if not self.config.ai_host:
+            self._show_error("AI service not configured. Use --ai-host.")
+            return
+
+        # Find all incomplete transactions
+        selected_indices = [
+            i for i, t in enumerate(self.review_file.transactions)
+            if not t.is_complete
+        ]
+
+        if not selected_indices:
+            return
+
+        # Collect narrations
+        narrations = []
+        for idx in selected_indices:
+            txn = self.review_file.transactions[idx]
+            narration = txn.directive.narration or ""
+            narrations.append(narration)
+
+        # Run prediction in background worker
+        self.run_worker(
+            self._do_predict(selected_indices, narrations),
+            name="predict_all_unconfirmed",
+            exclusive=True,
+        )
+
+    async def _do_predict(
+        self, indices: list[int], narrations: list[str]
+    ) -> None:
+        """Perform the actual prediction and apply results."""
+        try:
+            accounts = await predict_accounts(
+                narrations,
+                self.config.ai_host,
+                self.config.ai_port,
+            )
+
+            # Apply predicted accounts
+            for idx, account in zip(indices, accounts):
+                if not account:
+                    continue
+                txn = self.review_file.transactions[idx]
+                directive = txn.directive
+
+                # Find and replace non-asset/liability account
+                new_postings = []
+                for posting in directive.postings:
+                    # future: make this configurable
+                    if posting.account.startswith("Assets:") \
+                            or posting.account.startswith("Liabilities:"):
+                        new_postings.append(posting)
+                    else:
+                        new_postings.append(posting._replace(account=account))
+
+                new_directive = directive._replace(postings=new_postings)
+                self.review_file.transactions[idx] = txn.with_directive(new_directive)
+
+            # Refresh the display
+            current_idx = self._get_current_transaction_index()
+            self._update_footer_status()
+            self._restore_position_and_focus(current_idx)
+        except Exception as e:
+            self._show_error(f"Prediction failed: {e}")
+
+    def _show_error(self, message: str) -> None:
+        """Show an error message in the confirm footer."""
+        try:
+            self.query_one("#main-footer").remove()
+        except Exception:
+            pass
+
+        self._active_footer = "confirm"
+        self._confirm_action = None
+        footer = ConfirmFooter(message=message, id="confirm-footer")
         self.mount(footer)
         footer.focus()

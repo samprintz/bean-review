@@ -102,9 +102,25 @@ def main() -> None:
         default=None,
         help="Path to main ledger file for account completion",
     )
+    arg_parser.add_argument(
+        "--ai-host",
+        default=None,
+        help="Host of the AI classification service",
+    )
+    arg_parser.add_argument(
+        "--ai-port",
+        type=int,
+        default=None,
+        help="Port of the AI classification service (default: 8080)",
+    )
     args = arg_parser.parse_args()
 
-    config = load_config(args.config, ledger_file_override=args.ledger_file)
+    config = load_config(
+        args.config,
+        ledger_file_override=args.ledger_file,
+        ai_host_override=args.ai_host,
+        ai_port_override=args.ai_port,
+    )
 
     transactions = parse_file(args.input_file)
 

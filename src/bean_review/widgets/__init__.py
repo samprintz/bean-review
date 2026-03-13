@@ -1,5 +1,3 @@
-"""Custom widgets for beancount-reviewer."""
-
 from .confirm_footer import ConfirmFooter
 from .edit_text_footer import EditTextFooter
 from .footer import Footer, KeybindingsFooter

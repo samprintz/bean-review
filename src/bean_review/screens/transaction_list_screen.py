@@ -1,5 +1,3 @@
-"""Transaction list screen for beancount-reviewer."""
-
 import os
 import subprocess
 import tempfile

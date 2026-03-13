@@ -1,5 +1,3 @@
-"""Custom footer widget for beancount-reviewer."""
-
 from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.reactive import reactive

@@ -1,5 +1,3 @@
-"""Configuration handling for beancount-reviewer."""
-
 import configparser
 import os
 from dataclasses import dataclass, field

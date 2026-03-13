@@ -1,5 +1,3 @@
-"""Data models for beancount-reviewer."""
-
 from dataclasses import dataclass, field
 
 from beancount import loader

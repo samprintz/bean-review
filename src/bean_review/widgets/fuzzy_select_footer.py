@@ -1,5 +1,3 @@
-"""Fuzzy select footer widget for beancount-reviewer."""
-
 from textual.app import ComposeResult
 from textual.message import Message
 from textual.widget import Widget

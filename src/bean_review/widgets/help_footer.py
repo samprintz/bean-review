@@ -1,5 +1,3 @@
-"""Help footer widget for beancount-reviewer."""
-
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.message import Message

@@ -47,7 +47,8 @@ Priority (descending):
 
 ### AI Account Prediction
 
-Use an AI service to predict accounts based on narrations:
+Use an AI service like [bean-ai](https://github.com/samprintz/bean-ai)
+to predict accounts based on narrations:
 
     bean-review input.beancount --ai-host localhost
 

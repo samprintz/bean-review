@@ -1,10 +1,10 @@
 # Read Input From File Instead of Stdin
 
-It would be nice to call `beancount-reviewer.py` with input from stdin
+It would be nice to call `bean-review` with input from stdin
 and append the result to the ledger file:
 
 ```bash
-cat ingest.beancount | python beancount-reviewer.py >> ledger.beancount
+cat ingest.beancount | bean-review >> ledger.beancount
 ```
 
 Unfortunately, this is not possible with `textual`
@@ -15,15 +15,15 @@ Most TUI frameworks depend on reading keystrokes directly from the terminal devi
 not from a redirected pipe — and a pipe doesn’t support that.
 
 As a workaround, the user can write the ingested transactions to a temporary file
-and then pass that file as an argument to `beancount-reviewer.py`:
+and then pass that file as an argument to `bean-review`:
 
 ```bash
 python import.py extract $BEANCOUNT_IMPORT_DIR > ingest.beancount
-python beancount-reviewer.py ingest.beancount >> ledger.beancount
+bean-review ingest.beancount >> ledger.beancount
 ```
 
 or with process substitution:
 
 ```bash
-python beancount-reviewer.py <(python import.py extract $BEANCOUNT_IMPORT_DIR) >> ledger.beancount
+bean-review <(python import.py extract $BEANCOUNT_IMPORT_DIR) >> ledger.beancount
 ```

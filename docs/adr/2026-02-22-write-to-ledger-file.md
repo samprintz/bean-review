@@ -4,7 +4,7 @@ It would be convenient to write reviewed transactions to stdout
 and redirect output to the ledger file:
 
 ```bash
-python beancount-reviewer.py ingest.beancount >> ledger.beancount
+bean-review ingest.beancount >> ledger.beancount
 ```
 
 Unfortunately, this is not possible with `textual`.
@@ -26,7 +26,7 @@ As a solution, the application writes directly to the ledger file
 using the `--ledger-file` argument or the `BEANCOUNT_FILE` environment variable:
 
 ```bash
-python beancount-reviewer.py ingest.beancount --ledger-file ledger.beancount
+bean-review ingest.beancount --ledger-file ledger.beancount
 ```
 
 This keeps stdout connected to the terminal for the TUI

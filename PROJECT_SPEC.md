@@ -1,8 +1,8 @@
-# beancount-reviewer Specification
+# bean-review Specification
 
 ## Project Overview
 
-`beancount-reviewer` is a Python TUI application using `textual`
+`bean-review` is a Python TUI application using `textual`
 to review beancount transactions.
 The app reads transactions from an input file,
 allows manual review/editing,

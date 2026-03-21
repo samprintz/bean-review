@@ -34,6 +34,7 @@ TRANSACTION_LIST_ACTIONS = {
     "edit_narration_insert": Action("edit_narration_insert", "Edit narration (insert)"),
     "edit_narration_substitute": Action("edit_narration_substitute", "Edit narration (clear)"),
     "invert_selection": Action("invert_selection", "Invert selection"),
+    "unselect_all": Action("unselect_all", "Unselect all"),
     "save": Action("save", "Save and exit"),
     "quit": Action("quit", "Quit"),
     "help": Action("help", "Help"),
@@ -73,6 +74,7 @@ class Keymap:
             config.get_key("edit_narration_insert"): "edit_narration_insert",
             config.get_key("edit_narration_substitute"): "edit_narration_substitute",
             config.get_key("invert_selection"): "invert_selection",
+            config.get_key("unselect_all"): "unselect_all",
             config.get_key("save"): "save",
             config.get_key("quit"): "quit",
             config.get_key("help"): "help",
@@ -85,6 +87,8 @@ class Keymap:
         """Resolve a key press to an action name.
 
         Handles multi-key sequences like "g g" by tracking pending keys.
+        Multi-key prefixes take priority over single-key matches so that e.g.
+        "u v" (unselect_all) is reachable even though "u" is also bound.
         Returns the action name if resolved, None if waiting for more keys
         or no match.
         """
@@ -94,18 +98,25 @@ class Keymap:
             self._pending_key = None
             if sequence in self.bindings:
                 return self.bindings[sequence]
-            # Sequence didn't match, try the new key alone
-            # Fall through to single-key handling
+            # Sequence didn't match; try the new key as a prefix, then exact
+            for binding_key in self.bindings:
+                if " " in binding_key and binding_key.startswith(f"{key} "):
+                    self._pending_key = key
+                    return None
+            if key in self.bindings:
+                return self.bindings[key]
+            return None
 
-        # Check for exact single-key match
-        if key in self.bindings:
-            return self.bindings[key]
-
-        # Check if this could be the start of a multi-key sequence
+        # Check for multi-key prefix BEFORE exact single-key match so that a
+        # key bound both alone and as a sequence prefix waits for the next key.
         for binding_key in self.bindings:
             if " " in binding_key and binding_key.startswith(f"{key} "):
                 self._pending_key = key
                 return None
+
+        # Check for exact single-key match
+        if key in self.bindings:
+            return self.bindings[key]
 
         return None
 

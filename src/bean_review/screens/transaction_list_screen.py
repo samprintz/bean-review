@@ -254,6 +254,7 @@ class TransactionListScreen(Screen):
             "predict_selected": self._predict_selected,
             "predict_all_unconfirmed": self._predict_all_unconfirmed,
             "invert_selection": self._invert_selection,
+            "unselect_all": self._unselect_all,
             "save": self._save,
             "quit": self._quit_app,
             "help": self._show_help,
@@ -641,6 +642,13 @@ class TransactionListScreen(Screen):
         for idx, _ in visible:
             txn = self.review_file.transactions[idx]
             txn.selected = not txn.selected
+        self._restore_position_and_focus(current_idx)
+
+    def _unselect_all(self) -> None:
+        """Deselect all transactions."""
+        current_idx = self._get_current_transaction_index()
+        for txn in self.review_file.transactions:
+            txn.selected = False
         self._restore_position_and_focus(current_idx)
 
     def _save(self) -> None:

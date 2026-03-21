@@ -30,6 +30,7 @@ DEFAULT_KEYBINDINGS = {
     "save": "w",
     "quit": "q",
     "invert_selection": "v",
+    "unselect_all": "u v",
     "help": "question_mark",
 }
 

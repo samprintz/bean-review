@@ -16,6 +16,7 @@ and appends reviewed transactions to the main ledger file.
 - Bottom status bar shows "(k/n complete)" count
 - Highlight incomplete transactions (missing `*` flag)
 - `ENTER`/`E` opens transaction in `$EDITOR`
+- `e` opens narration of focused/selected transaction(s) in `$EDITOR`
 - `SPACE` selects/deselects focused transaction
 - `u` toggles complete status (focused or all selected)
 - `c` opens account selector (focused or all selected)

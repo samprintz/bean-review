@@ -247,6 +247,7 @@ class TransactionListScreen(Screen):
             "edit_category": self._edit_category,
             "toggle_complete": self._toggle_complete,
             "edit_external": self._edit_external,
+            "edit_narration_external": self._edit_narration_external,
             "edit_narration_append": lambda: self._edit_narration("append"),
             "edit_narration_insert": lambda: self._edit_narration("insert"),
             "edit_narration_substitute": lambda: self._edit_narration("substitute"),
@@ -579,6 +580,59 @@ class TransactionListScreen(Screen):
     def _edit_inline(self) -> None:
         """Edit current transaction inline (opens external editor for now)."""
         self._edit_external()
+
+    def _edit_narration_external(self) -> None:
+        """Edit narration of selected transaction(s) in external editor.
+
+        Each narration is placed on its own line in the temp file.
+        After editing, lines are mapped back to the corresponding transactions.
+        """
+        current_idx = self._get_current_transaction_index()
+
+        selected_indices = [
+            i for i, t in enumerate(self.review_file.transactions) if t.selected
+        ]
+
+        if not selected_indices:
+            if current_idx is not None:
+                selected_indices = [current_idx]
+
+        if not selected_indices:
+            return
+
+        editor = os.environ.get("EDITOR", "vi")
+
+        # One narration per line
+        narrations = [
+            self.review_file.transactions[idx].directive.narration or ""
+            for idx in selected_indices
+        ]
+        content = "\n".join(narrations)
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False
+        ) as f:
+            f.write(content)
+            temp_path = f.name
+
+        try:
+            with self.app.suspend():
+                subprocess.call([editor, temp_path])
+
+            with open(temp_path) as f:
+                new_lines = f.read().splitlines()
+
+            # Apply edited narrations (map by position; pad with empty string if lines removed)
+            for i, idx in enumerate(selected_indices):
+                new_narration = new_lines[i] if i < len(new_lines) else ""
+                txn = self.review_file.transactions[idx]
+                new_directive = txn.directive._replace(narration=new_narration)
+                self.review_file.transactions[idx] = txn.with_directive(new_directive)
+
+            self._update_footer_status()
+            self._restore_position_and_focus(current_idx)
+        finally:
+            os.unlink(temp_path)
 
     def _invert_selection(self) -> None:
         """Invert selection of all visible transactions."""

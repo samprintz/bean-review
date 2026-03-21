@@ -21,6 +21,7 @@ DEFAULT_KEYBINDINGS = {
     "edit_category": "c",
     "toggle_complete": "u",
     "edit_external": "E",
+    "edit_narration_external": "e",
     "edit_narration_append": "A",
     "edit_narration_insert": "I",
     "edit_narration_substitute": "S",

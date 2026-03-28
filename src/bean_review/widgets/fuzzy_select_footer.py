@@ -27,8 +27,7 @@ class FuzzySelectFooter(Widget):
     }
 
     FuzzySelectFooter #fuzzy-suggestions {
-        height: auto;
-        max-height: 10;
+        height: 10;
         background: $surface;
     }
 
@@ -101,9 +100,9 @@ class FuzzySelectFooter(Widget):
         if query:
             self._filtered_options = [
                 opt for opt in self.options if fuzzy_match(query, opt)
-            ][:10]
+            ]
         else:
-            self._filtered_options = self.options[:10]
+            self._filtered_options = list(self.options)
 
         for i, opt in enumerate(self._filtered_options):
             item = ListItem(Label(opt))

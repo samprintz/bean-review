@@ -1,5 +1,5 @@
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, ScrollableContainer
 from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import Static
@@ -16,13 +16,12 @@ class HelpFooter(Widget):
     HelpFooter {
         dock: bottom;
         height: auto;
-        max-height: 20;
         background: $surface;
         border-top: solid $primary;
     }
 
     HelpFooter #help-content {
-        height: auto;
+        height: 12;
         padding: 0 1;
     }
 
@@ -85,7 +84,7 @@ class HelpFooter(Widget):
         self._keymap = keymap
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="help-content"):
+        with ScrollableContainer(id="help-content"):
             for key, description in self._keymap.all_bindings():
                 display_key = self._format_key(key)
                 with Horizontal(classes="help-row"):
@@ -111,5 +110,13 @@ class HelpFooter(Widget):
         """Handle key events."""
         if event.key == "escape" or event.key == "question_mark" or event.key == "q":
             self.post_message(self.Closed())
+            event.prevent_default()
+            event.stop()
+        elif event.key == "up":
+            self.query_one("#help-content").scroll_up()
+            event.prevent_default()
+            event.stop()
+        elif event.key == "down":
+            self.query_one("#help-content").scroll_down()
             event.prevent_default()
             event.stop()

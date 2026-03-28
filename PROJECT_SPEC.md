@@ -3,10 +3,12 @@
 ## Project Overview
 
 `bean-review` is a Python TUI application using `textual`
-to review beancount transactions.
-The app reads transactions from an input file,
-allows manual review/editing,
-and appends reviewed transactions to the main ledger file.
+to review and edit beancount transactions.
+The app reads transactions from an input file.
+The transactions can be reviewed and edited
+with bulk editing and AI features.
+The result can be saved back to the source file
+or appended to a main ledger file.
 
 ## Requirements
 
@@ -25,7 +27,8 @@ and appends reviewed transactions to the main ledger file.
 - `g P` predicts accounts for all unconfirmed transactions (requires `--ai-host`)
 - `n`/`p` jumps to next/previous incomplete transaction
 - `Z` filters to show only incomplete transactions
-- `w` writes transactions (with confirm)
+- `w` saves transactions to source file (with confirm); shows error if source is not a regular file (e.g. process substitution)
+- `W` appends transactions to configured ledger file (with confirm)
 - `q` quits (with confirm)
 - Editing preserves focus on current transaction
 
@@ -35,7 +38,7 @@ and appends reviewed transactions to the main ledger file.
 - `j`/`k` moves down/up one item
 - `gg`/`G` jumps to first/last item
 - `C-d`/`C-u` scrolls half-page down/up
-- Footer shows keybindings: `?`, `c`, `enter`, `w`, `q`
+- Footer shows keybindings: `?`, `c`, `enter`, `w`, `W`, `q`
 
 ### Account Selector
 

@@ -28,6 +28,7 @@ DEFAULT_KEYBINDINGS = {
     "predict_selected": "P",
     "predict_all_unconfirmed": "g P",
     "save": "w",
+    "append_to_ledger": "W",
     "quit": "q",
     "invert_selection": "v",
     "unselect_all": "u v",

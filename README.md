@@ -1,7 +1,7 @@
 # bean-review
 
 `bean-review` is a Python TUI application using `textual`
-to review beancount transactions.
+to review and edit beancount transactions.
 
 ## Installation
 

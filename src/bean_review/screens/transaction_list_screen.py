@@ -256,6 +256,7 @@ class TransactionListScreen(Screen):
             "invert_selection": self._invert_selection,
             "unselect_all": self._unselect_all,
             "save": self._save,
+            "append_to_ledger": self._append_to_ledger,
             "quit": self._quit_app,
             "help": self._show_help,
         }
@@ -495,7 +496,9 @@ class TransactionListScreen(Screen):
         action = self._confirm_action
         self._restore_main_footer()
         if action == "save":
-            self.app.save_and_exit()
+            self.app.exit_with_save("source")
+        elif action == "append_to_ledger":
+            self.app.exit_with_save("ledger")
         elif action == "quit":
             self.app.exit()
 
@@ -652,8 +655,15 @@ class TransactionListScreen(Screen):
         self._restore_position_and_focus(current_idx)
 
     def _save(self) -> None:
-        """Show save confirmation footer."""
-        self._show_confirm("Save and exit?", "save")
+        """Show save-to-source confirmation footer."""
+        if not self.app.source_file:
+            self.notify("Cannot write: source is not a regular file", severity="error")
+            return
+        self._show_confirm("Save?", "save")
+
+    def _append_to_ledger(self) -> None:
+        """Show append-to-ledger confirmation footer."""
+        self._show_confirm("Append to ledger?", "append_to_ledger")
 
     def _quit_app(self) -> None:
         """Show quit confirmation footer."""

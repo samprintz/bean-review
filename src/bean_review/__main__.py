@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import sys
 
 from beancount.core.data import Transaction
@@ -35,20 +36,22 @@ class ReviewerApp(App):
         self,
         review_file: ReviewFile,
         config: Config,
+        source_file: str | None = None,
     ) -> None:
         super().__init__()
         self.review_file = review_file
         self.config = config
-        self.should_save = False
+        self.source_file = source_file
+        self.save_target: str | None = None  # "ledger" | "source"
 
     def on_mount(self) -> None:
         self.register_theme(plain_light_theme)
         self.theme = "plain-light"
         self.push_screen(TransactionListScreen(self.review_file, self.config))
 
-    def save_and_exit(self) -> None:
-        """Mark for save and exit the application."""
-        self.should_save = True
+    def exit_with_save(self, target: str) -> None:
+        """Set save target and exit the application."""
+        self.save_target = target
         self.exit()
 
 
@@ -75,11 +78,20 @@ def create_review_file(
     return ReviewFile(filename=filename, transactions=review_txns)
 
 
-def output_transactions(review_file: ReviewFile, ledger_file: str) -> None:
+def append_to_ledger(review_file: ReviewFile, ledger_file: str) -> None:
     """Append all transactions to the ledger file."""
     with open(ledger_file, 'a') as f:
         for review_txn in review_file.transactions:
             f.write('\n')
+            f.write(printer.format_entry(review_txn.directive))
+
+
+def save_transactions(review_file: ReviewFile, source_file: str) -> None:
+    """Overwrite source file with all (modified) transactions."""
+    with open(source_file, 'w') as f:
+        for i, review_txn in enumerate(review_file.transactions):
+            if i > 0:
+                f.write('\n')
             f.write(printer.format_entry(review_txn.directive))
 
 
@@ -130,14 +142,17 @@ def main() -> None:
 
     review_file = create_review_file(transactions, args.input_file)
 
-    app = ReviewerApp(review_file, config)
+    source_file = args.input_file if os.path.isfile(args.input_file) else None
+    app = ReviewerApp(review_file, config, source_file=source_file)
     app.run()
 
-    if app.should_save:
+    if app.save_target == "ledger":
         if not config.ledger_file:
             print("Error: No ledger file configured. Use --ledger-file or set BEANCOUNT_FILE.", file=sys.stderr)
             sys.exit(1)
-        output_transactions(app.review_file, config.ledger_file)
+        append_to_ledger(app.review_file, config.ledger_file)
+    elif app.save_target == "source":
+        save_transactions(app.review_file, args.input_file)
 
 
 if __name__ == "__main__":

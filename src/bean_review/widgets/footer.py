@@ -68,7 +68,14 @@ class Footer(Widget):
     total: reactive[int] = reactive(0)
 
     # Actions to show in footer (in order)
-    FOOTER_ACTIONS = ["help", "edit_category", "select", "save", "quit"]
+    FOOTER_ACTIONS = [
+        "help",
+        "edit_category",
+        "select",
+        "save",
+        "append_to_ledger",
+        "quit",
+    ]
 
     def __init__(
         self,

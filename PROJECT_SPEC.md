@@ -72,17 +72,12 @@ or appended to a main ledger file.
 ## Architecture
 
 ```
-beancount-reviewer.py    # Entry point
 src/
   screens/
-    transaction_list.py  # Main screen
   widgets/
-    account_selector.py  # Fuzzy account search
-    narration_editor.py  # Single-line text editor
-    help_menu.py         # Keybinding display
-    confirm_dialog.py    # y/n prompt
-  config.py              # Configuration handling
-  keybindings.py         # Keybinding definitions
+  config.py
+  keymap.py
+  models.py
 ```
 
 Each screen and dialog is a separate class in a separate file.

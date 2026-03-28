@@ -32,6 +32,19 @@ The inbox is a directory (with possible subdirectories) that contains import fil
 - Entries without a beancount file are **pending** (displayed dimmed).
 - `enter` on a reviewable entry opens the Transaction List Screen for that file.
 - `enter` on a pending entry shows a warning notification.
+- `B` imports the focused file by running the configured import command
+  with the file path as argument.
+  If the file is already imported (reviewable),
+  a confirm dialog asks before overwriting.
+  If no import command is configured,
+  - the confirm footer shows a hint to set `import_cmd` in the config file.
+- `g B` imports all pending files by running the import command
+  with the inbox directory as argument.
+- After import the list is refreshed automatically.
+- Import commands are configured in the `[general]` section of the config file:
+  - `import_cmd`: used for single-file import (`B`) and as fallback for `g B`.
+  - `import_all_cmd`: used for bulk import (`g B`)
+  There is no default; the keys are inert until a command is configured.
 - `q` quits the application.
 - The `InboxEntry` data class represents one entry: `import_file`, `beancount_file`
   (or `None`), and `inbox_root`.

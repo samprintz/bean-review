@@ -45,10 +45,12 @@ TRANSACTION_LIST_ACTIONS = {
 
 
 INBOX_ACTIONS = {
-    "up":     Action("up",     "Up"),
-    "down":   Action("down",   "Down"),
+    "up": Action("up", "Up"),
+    "down": Action("down", "Down"),
     "select": Action("select", "Open"),
-    "quit":   Action("quit",   "Quit"),
+    "import_active": Action("import_active", "Import file"),
+    "import_all_pending": Action("import_all_pending", "Import all pending"),
+    "quit": Action("quit", "Quit"),
 }
 
 
@@ -97,10 +99,12 @@ class Keymap:
     def for_inbox(cls, config: Config) -> "Keymap":
         """Create keymap for inbox screen."""
         bindings = {
-            config.get_key("up"):     "up",
-            config.get_key("down"):   "down",
+            config.get_key("up"): "up",
+            config.get_key("down"): "down",
             config.get_key("select"): "select",
-            config.get_key("quit"):   "quit",
+            config.get_key("import_active"): "import_active",
+            config.get_key("import_all_pending"): "import_all_pending",
+            config.get_key("quit"): "quit",
         }
         return cls(bindings=bindings, actions=INBOX_ACTIONS)
 

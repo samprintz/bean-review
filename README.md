@@ -49,6 +49,16 @@ Priority (descending):
 2. Config: `[general]` → `ledger_file`
 3. Environment: `BEANCOUNT_FILE`
 
+### Import Command
+
+The inbox screen can trigger an importer to transform pending files.
+Configure the command in the config file:
+
+```ini
+[general]
+import_cmd = python beancount-importer.py
+```
+
 ### AI Account Prediction
 
 Use an AI service like [bean-ai](https://github.com/samprintz/bean-ai)

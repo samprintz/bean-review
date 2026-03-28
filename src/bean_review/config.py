@@ -33,6 +33,8 @@ DEFAULT_KEYBINDINGS = {
     "invert_selection": "v",
     "unselect_all": "u v",
     "help": "question_mark",
+    "import_active": "B",
+    "import_all_pending": "g B",
 }
 
 
@@ -42,6 +44,8 @@ class Config:
     ledger_file: str | None = None
     ai_host: str | None = None
     ai_port: int = 8080
+    import_cmd: str | None = None
+    import_all_cmd: str | None = None
 
     def get_key(self, action: str) -> str:
         return self.keybindings.get(action, DEFAULT_KEYBINDINGS.get(action, ""))
@@ -72,6 +76,8 @@ def load_config(
         Config object with loaded or default settings.
 
     Ledger file resolution priority: CLI > config file > BEANCOUNT_FILE env var.
+    Import commands: import_cmd for single-file import;
+    import_all_cmd for bulk import (falls back to import_cmd if not set).
     """
     if config_path is None:
         config_path = DEFAULT_CONFIG_PATH
@@ -81,6 +87,8 @@ def load_config(
     config = Config()
 
     config_file_ledger: str | None = None
+    config_file_import_cmd: str | None = None
+    config_file_import_all_cmd: str | None = None
 
     if config_path.exists():
         parser = configparser.ConfigParser()
@@ -88,6 +96,8 @@ def load_config(
 
         if "general" in parser:
             config_file_ledger = parser["general"].get("ledger_file")
+            config_file_import_cmd = parser["general"].get("import_cmd")
+            config_file_import_all_cmd = parser["general"].get("import_all_cmd")
 
         if "keybindings" in parser:
             for action, key in parser["keybindings"].items():
@@ -103,6 +113,10 @@ def load_config(
         config.ledger_file = _resolve_path(config_file_ledger)
     elif env_ledger:
         config.ledger_file = _resolve_path(env_ledger)
+
+    config.import_cmd = config_file_import_cmd or None
+    config.import_all_cmd = config_file_import_all_cmd \
+            or config_file_import_cmd or None
 
     if ai_host_override:
         config.ai_host = ai_host_override

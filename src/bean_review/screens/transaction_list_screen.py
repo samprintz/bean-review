@@ -496,9 +496,9 @@ class TransactionListScreen(Screen):
         action = self._confirm_action
         self._restore_main_footer()
         if action == "save":
-            self.app.exit_with_save("source")
+            self.app.save()
         elif action == "append_to_ledger":
-            self.app.exit_with_save("ledger")
+            self.app.append_to_ledger()
         elif action == "quit":
             self.app.exit()
 
@@ -663,11 +663,14 @@ class TransactionListScreen(Screen):
 
     def _append_to_ledger(self) -> None:
         """Show append-to-ledger confirmation footer."""
+        if not self.app.config.ledger_file:
+            self.notify("No ledger file configured. Use --ledger-file or set BEANCOUNT_FILE.", severity="error")
+            return
         self._show_confirm("Append to ledger?", "append_to_ledger")
 
     def _quit_app(self) -> None:
         """Show quit confirmation footer."""
-        self._show_confirm("Quit without saving?", "quit")
+        self._show_confirm("Quit?", "quit")
 
     def _show_confirm(self, message: str, action: str) -> None:
         """Show confirmation footer."""

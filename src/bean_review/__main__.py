@@ -42,17 +42,17 @@ class ReviewerApp(App):
         self.review_file = review_file
         self.config = config
         self.source_file = source_file
-        self.save_target: str | None = None  # "ledger" | "source"
 
     def on_mount(self) -> None:
         self.register_theme(plain_light_theme)
         self.theme = "plain-light"
         self.push_screen(TransactionListScreen(self.review_file, self.config))
 
-    def exit_with_save(self, target: str) -> None:
-        """Set save target and exit the application."""
-        self.save_target = target
-        self.exit()
+    def save(self) -> None:
+        save_transactions(self.review_file, self.source_file)
+
+    def append_to_ledger(self) -> None:
+        append_transactions_to_ledger(self.review_file, self.config.ledger_file)
 
 
 def parse_file(input_path: str) -> list[Transaction]:
@@ -78,7 +78,7 @@ def create_review_file(
     return ReviewFile(filename=filename, transactions=review_txns)
 
 
-def append_to_ledger(review_file: ReviewFile, ledger_file: str) -> None:
+def append_transactions_to_ledger(review_file: ReviewFile, ledger_file: str) -> None:
     """Append all transactions to the ledger file."""
     with open(ledger_file, 'a') as f:
         for review_txn in review_file.transactions:
@@ -145,14 +145,6 @@ def main() -> None:
     source_file = args.input_file if os.path.isfile(args.input_file) else None
     app = ReviewerApp(review_file, config, source_file=source_file)
     app.run()
-
-    if app.save_target == "ledger":
-        if not config.ledger_file:
-            print("Error: No ledger file configured. Use --ledger-file or set BEANCOUNT_FILE.", file=sys.stderr)
-            sys.exit(1)
-        append_to_ledger(app.review_file, config.ledger_file)
-    elif app.save_target == "source":
-        save_transactions(app.review_file, args.input_file)
 
 
 if __name__ == "__main__":

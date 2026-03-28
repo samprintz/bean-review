@@ -27,8 +27,10 @@ or appended to a main ledger file.
 - `g P` predicts accounts for all unconfirmed transactions (requires `--ai-host`)
 - `n`/`p` jumps to next/previous incomplete transaction
 - `Z` filters to show only incomplete transactions
-- `w` saves transactions to source file (with confirm); shows error if source is not a regular file (e.g. process substitution)
+- `w` saves transactions to source file (with confirm);
+  shows error if source is not a regular file (e.g. process substitution)
 - `W` appends transactions to configured ledger file (with confirm)
+  shows error of no ledger file configured
 - `q` quits (with confirm)
 - Editing preserves focus on current transaction
 

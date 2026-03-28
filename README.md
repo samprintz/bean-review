@@ -25,6 +25,10 @@ Call with input file:
 
     bean-review <input_file>
 
+Call with inbox directory to review all staged files:
+
+    bean-review <inbox_dir>
+
 Directly read from beangulp importer output:
 
     bean-review <(python import.py extract $BEANCOUNT_IMPORT_DIR)

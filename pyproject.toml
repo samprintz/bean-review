@@ -17,7 +17,7 @@ dependencies = [
 bean-review = "bean_review.__main__:main"
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pytest-asyncio"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,7 +1,6 @@
+import os
 from dataclasses import dataclass, field
 
-from beancount import loader
-from beancount.core import getters
 from beancount.core.data import Transaction
 
 
@@ -76,10 +75,20 @@ class ReviewFile:
         return self.incomplete_count > 0
 
 
-def load_accounts_from_ledger(ledger_path: str) -> list[str]:
-    """Load account names from a beancount ledger file."""
-    try:
-        entries, errors, options = loader.load_file(ledger_path)
-        return sorted(getters.get_accounts(entries))
-    except Exception:
-        return []
+@dataclass
+class InboxEntry:
+    """An import file in the inbox with an optional beancount counterpart."""
+
+    import_file: str        # absolute path (CSV, PDF, …)
+    beancount_file: str | None  # absolute path to <import_file>.beancount, or None
+    inbox_root: str         # absolute path to inbox root
+
+    @property
+    def display_name(self) -> str:
+        """Path relative to inbox root."""
+        return os.path.relpath(self.import_file, self.inbox_root)
+
+    @property
+    def is_reviewable(self) -> bool:
+        """Whether this entry has a corresponding beancount file."""
+        return self.beancount_file is not None

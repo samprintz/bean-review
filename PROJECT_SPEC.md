@@ -4,13 +4,42 @@
 
 `bean-review` is a Python TUI application using `textual`
 to review and edit beancount transactions.
-The app reads transactions from an input file.
+The app reads transactions from an input file or a directory (inbox).
 The transactions can be reviewed and edited
 with bulk editing and AI features.
 The result can be saved back to the source file
 or appended to a main ledger file.
 
 ## Requirements
+
+### Invocation
+
+`bean-review` accepts a single positional argument:
+
+- **File**: a `.beancount` file — opens the Transaction List Screen directly.
+- **Directory**: an inbox directory — opens the Inbox Screen.
+
+### Inbox Screen
+
+The inbox screen is shown when `bean-review` is called with a directory argument.
+
+The inbox is a directory (with possible subdirectories) that contains import files
+(CSV, PDF, …) alongside their `.beancount` counterparts produced by `bean-stage`.
+
+- Each import file (non-`.beancount`) is one list entry.
+- Nested files are listed by their path relative to the inbox root.
+- Entries with a corresponding `<file>.beancount` are **reviewable** (displayed normally).
+- Entries without a beancount file are **pending** (displayed dimmed).
+- `enter` on a reviewable entry opens the Transaction List Screen for that file.
+- `enter` on a pending entry shows a warning notification.
+- `q` quits the application.
+- The `InboxEntry` data class represents one entry: `import_file`, `beancount_file`
+  (or `None`), and `inbox_root`.
+
+When the Transaction List Screen is opened from the Inbox Screen:
+- `m` and `esc` (when no footer dialog is active) return to the Inbox Screen.
+- `w` saves to the `.beancount` file for that inbox entry.
+- `q` quits the application.
 
 ### Transaction List Screen
 
@@ -77,6 +106,7 @@ or appended to a main ledger file.
 src/
   screens/
   widgets/
+  util.py
   config.py
   keymap.py
   models.py

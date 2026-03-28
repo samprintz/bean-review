@@ -11,7 +11,8 @@ from textual.widgets import Header, Label, ListItem, ListView
 from ..ai_client import predict_accounts
 from ..config import Config
 from ..keymap import Keymap
-from ..models import load_accounts_from_ledger, ReviewFile, ReviewTransaction
+from ..models import ReviewFile, ReviewTransaction
+from ..util import load_accounts_from_ledger
 from ..widgets import ConfirmFooter, EditTextFooter, Footer, FuzzySelectFooter, HelpFooter
 
 
@@ -101,6 +102,8 @@ class TransactionListScreen(Screen):
         self,
         review_file: ReviewFile,
         config: Config,
+        source_file: str | None = None,
+        back_to_inbox: bool = False,
         name: str | None = None,
         id: str | None = None,
         classes: str | None = None,
@@ -108,6 +111,8 @@ class TransactionListScreen(Screen):
         super().__init__(name=name, id=id, classes=classes)
         self.review_file = review_file
         self.config = config
+        self.source_file = source_file
+        self._back_to_inbox = back_to_inbox
         self.keymap = Keymap.for_transaction_list(config)
         self._filter_incomplete = False
         self._active_footer: str | None = None  # "main", "confirm", "category", "help", "edit"
@@ -496,9 +501,9 @@ class TransactionListScreen(Screen):
         action = self._confirm_action
         self._restore_main_footer()
         if action == "save":
-            self.app.save()
+            self.app.save(self.review_file, self.source_file)
         elif action == "append_to_ledger":
-            self.app.append_to_ledger()
+            self.app.append_to_ledger(self.review_file)
         elif action == "quit":
             self.app.exit()
 
@@ -519,6 +524,10 @@ class TransactionListScreen(Screen):
         action = self.keymap.resolve(event.key)
         if action:
             self._run_action(action)
+            event.prevent_default()
+            event.stop()
+        elif self._back_to_inbox and event.key in ("m", "escape"):
+            self.app.pop_screen()
             event.prevent_default()
             event.stop()
         elif not self.keymap.has_pending():
@@ -656,7 +665,7 @@ class TransactionListScreen(Screen):
 
     def _save(self) -> None:
         """Show save-to-source confirmation footer."""
-        if not self.app.source_file:
+        if not self.source_file:
             self.notify("Cannot write: source is not a regular file", severity="error")
             return
         self._show_confirm("Save?", "save")

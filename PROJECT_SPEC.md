@@ -23,8 +23,11 @@ or appended to a main ledger file.
 
 The inbox screen is shown when `bean-review` is called with a directory argument.
 
-The inbox is a directory (with possible subdirectories) that contains import files
-(CSV, PDF, …) alongside their `.beancount` counterparts produced by `bean-stage`.
+The inbox is a directory
+(with possible subdirectories,
+including symlinked directories)
+that contains import files (CSV, PDF, …)
+alongside their `.beancount` counterparts produced by `bean-stage`.
 
 - Each import file (non-`.beancount`) is one list entry.
 - Nested files are listed by their path relative to the inbox root.

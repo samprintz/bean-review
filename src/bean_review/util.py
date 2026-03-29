@@ -34,7 +34,7 @@ def scan_inbox(inbox_dir: str) -> list["InboxEntry"]:
     """Scan inbox directory; return one InboxEntry per non-.beancount file."""
     entries: list[InboxEntry] = []
     inbox_dir = os.path.abspath(inbox_dir)
-    for root, _dirs, files in os.walk(inbox_dir):
+    for root, _dirs, files in os.walk(inbox_dir, followlinks=True):
         for filename in sorted(files):
             if filename.endswith(".beancount"):
                 continue

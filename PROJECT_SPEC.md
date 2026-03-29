@@ -53,7 +53,7 @@ alongside their `.beancount` counterparts produced by `bean-stage`.
   (or `None`), and `inbox_root`.
 
 When the Transaction List Screen is opened from the Inbox Screen:
-- `m` and `esc` (when no footer dialog is active) return to the Inbox Screen.
+- `h` and `esc` (when no footer dialog is active) return to the Inbox Screen.
 - `w` saves to the `.beancount` file for that inbox entry.
 - `q` quits the application.
 

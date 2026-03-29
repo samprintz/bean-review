@@ -19,7 +19,7 @@ DEFAULT_KEYBINDINGS = {
     "prev_incomplete": "p",
     "filter_incomplete": "Z",
     "edit_category": "c",
-    "toggle_complete": "u",
+    "toggle_complete": "m",
     "edit_external": "E",
     "edit_narration_external": "e",
     "edit_narration_append": "A",
@@ -35,6 +35,7 @@ DEFAULT_KEYBINDINGS = {
     "help": "question_mark",
     "import_active": "B",
     "import_all_pending": "g B",
+    "view_inbox": "h",
 }
 
 

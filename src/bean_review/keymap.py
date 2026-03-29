@@ -41,6 +41,7 @@ TRANSACTION_LIST_ACTIONS = {
     "help": Action("help", "Help"),
     "predict_selected": Action("predict_selected", "Predict account(s)"),
     "predict_all_unconfirmed": Action("predict_all_unconfirmed", "Predict all unconfirmed"),
+    "view_inbox": Action("view_inbox", "View inbox"),
 }
 
 
@@ -92,6 +93,7 @@ class Keymap:
             config.get_key("help"): "help",
             config.get_key("predict_selected"): "predict_selected",
             config.get_key("predict_all_unconfirmed"): "predict_all_unconfirmed",
+            config.get_key("view_inbox"): "view_inbox",
         }
         return cls(bindings=bindings, actions=TRANSACTION_LIST_ACTIONS)
 

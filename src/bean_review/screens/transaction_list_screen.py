@@ -264,6 +264,7 @@ class TransactionListScreen(Screen):
             "append_to_ledger": self._append_to_ledger,
             "quit": self._quit_app,
             "help": self._show_help,
+            "view_inbox": self._view_inbox,
         }
         handler = action_map.get(action)
         if handler:
@@ -526,7 +527,7 @@ class TransactionListScreen(Screen):
             self._run_action(action)
             event.prevent_default()
             event.stop()
-        elif self._back_to_inbox and event.key in ("m", "escape"):
+        elif self._back_to_inbox and event.key == "escape":
             self.app.pop_screen()
             event.prevent_default()
             event.stop()
@@ -676,6 +677,11 @@ class TransactionListScreen(Screen):
             self.notify("No ledger file configured. Use --ledger-file or set BEANCOUNT_FILE.", severity="error")
             return
         self._show_confirm("Append to ledger?", "append_to_ledger")
+
+    def _view_inbox(self) -> None:
+        """Return to inbox screen if opened from there."""
+        if self._back_to_inbox:
+            self.app.pop_screen()
 
     def _quit_app(self) -> None:
         """Show quit confirmation footer."""

@@ -41,3 +41,29 @@ async def test_inbox_screen_shows_entries(tmp_path: Path) -> None:
             ("sub/subfolder/2025-03-28-other-file-in-nested-subfolder.pdf", True),
             ("subfolder/file-in-subfolder.pdf", True),
         ]
+
+
+@pytest.mark.asyncio
+async def test_f5_refreshes_inbox(tmp_path: Path) -> None:
+    make_inbox(tmp_path)
+    app = ReviewerApp(load_config(None), inbox_dir=str(tmp_path))
+
+    async with app.run_test() as pilot:
+        assert isinstance(pilot.app.screen, InboxScreen)
+
+        # Verify initial count
+        items_before = list(pilot.app.screen.query(InboxListItem))
+        assert len(items_before) == 4
+
+        # Add a new import file to the inbox while the app is running
+        new_file = tmp_path / "new-import.csv"
+        new_file.touch()
+
+        # Press F5 to refresh
+        await pilot.press("f5")
+        await pilot.pause()
+
+        items_after = list(pilot.app.screen.query(InboxListItem))
+        display_names = [item.entry.display_name for item in items_after]
+        assert "new-import.csv" in display_names
+        assert len(items_after) == 5

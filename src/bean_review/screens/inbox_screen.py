@@ -66,7 +66,7 @@ class InboxScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield ListView(id="inbox-list")
-        yield Static("enter open  B import  g B import all  q quit", id="inbox-footer")
+        yield Static("enter open  B import  g B import all  F5 refresh  q quit", id="inbox-footer")
 
     def on_mount(self) -> None:
         self._reload()
@@ -214,6 +214,10 @@ class InboxScreen(Screen):
             event.stop()
         elif action == "import_all_pending":
             self._import_all_pending()
+            event.prevent_default()
+            event.stop()
+        elif action == "refresh_inbox":
+            self._reload()
             event.prevent_default()
             event.stop()
         elif action == "quit":

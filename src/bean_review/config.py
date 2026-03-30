@@ -35,6 +35,7 @@ DEFAULT_KEYBINDINGS = {
     "help": "question_mark",
     "import_active": "B",
     "import_all_pending": "g B",
+    "refresh_inbox": "f5",
     "view_inbox": "h",
 }
 

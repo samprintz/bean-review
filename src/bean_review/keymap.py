@@ -51,6 +51,7 @@ INBOX_ACTIONS = {
     "select": Action("select", "Open"),
     "import_active": Action("import_active", "Import file"),
     "import_all_pending": Action("import_all_pending", "Import all pending"),
+    "refresh_inbox": Action("refresh_inbox", "Refresh"),
     "quit": Action("quit", "Quit"),
 }
 
@@ -106,6 +107,7 @@ class Keymap:
             config.get_key("select"): "select",
             config.get_key("import_active"): "import_active",
             config.get_key("import_all_pending"): "import_all_pending",
+            config.get_key("refresh_inbox"): "refresh_inbox",
             config.get_key("quit"): "quit",
         }
         return cls(bindings=bindings, actions=INBOX_ACTIONS)

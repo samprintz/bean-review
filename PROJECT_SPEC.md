@@ -44,6 +44,7 @@ alongside their `.beancount` counterparts produced by `bean-stage`.
 - `g B` imports all pending files by running the import command
   with the inbox directory as argument.
 - After import the list is refreshed automatically.
+- `F5` refreshes the inbox list manually by re-scanning the inbox directory.
 - Import commands are configured in the `[general]` section of the config file:
   - `import_cmd`: used for single-file import (`B`) and as fallback for `g B`.
   - `import_all_cmd`: used for bulk import (`g B`)

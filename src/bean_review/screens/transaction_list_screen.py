@@ -92,11 +92,7 @@ class TransactionListScreen(Screen):
     }
 
     ListView > ListItem.--highlight {
-        background: $accent;
-    }
-
-    ListView > ListItem.--highlight.selected {
-        background: $accent;
+        background: $accent !important;
     }
     """
 

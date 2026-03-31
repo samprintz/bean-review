@@ -6,19 +6,16 @@ and relaunch — breaking the review flow.
 
 ## Decision
 
-Add two import actions to the Inbox Screen:
+Add an import action to the Inbox Screen:
 
-- Import the focused file (passes the file path to the import command).
-- Import all pending files (passes the inbox directory).
+Import the focused file (passes the file path to the import command).
 
 The import command is run via subprocess in a background thread.
 The list refreshes automatically on completion.
 Triggering import on an already-imported file requires confirmation to prevent
 accidental overwrites.
 
-Both actions share `import_cmd` as their base configuration key.
-`import_all_cmd` can override the bulk-import command independently
-(e.g. to pass different flags or use a different tool).
+The action is configured via `import_cmd` in the `[general]` section.
 
 ## Consequences
 

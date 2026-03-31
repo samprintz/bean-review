@@ -52,11 +52,7 @@ Configure the import command to transform pending inbox files:
 ```ini
 [general]
 import_cmd = python my-beancount-importer.py
-import_all_cmd = python my-beancount-importer.py --all
 ```
-
-`import_cmd` is used for single-file import and as fallback for bulk import.
-`import_all_cmd` is used for bulk import.
 
 ### Version control
 

@@ -6,4 +6,4 @@ archive directory — without requiring the user to leave the TUI.
 
 ## Decision
 
-Add an archive action to the Inbox Screen, mirroring the import actions.
+Add an archive action to the Inbox Screen, mirroring the import action.

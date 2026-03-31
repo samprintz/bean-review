@@ -56,12 +56,11 @@ class InboxScreen(Screen):
         self._active_footer: str = "main"
         self._pending_import_entry: InboxEntry | None = None
         self._pending_confirm_action: str | None = None
-        self._pending_archive_target: str | None = None
 
     FOOTER_ACTIONS = [
         "help", "select",
-        "import_active", "import_all_pending",
-        "archive_active", "archive_all",
+        "import_active",
+        "archive_active",
         "quit",
     ]
 
@@ -99,7 +98,6 @@ class InboxScreen(Screen):
         self._active_footer = "main"
         self._pending_import_entry = None
         self._pending_confirm_action = None
-        self._pending_archive_target = None
         self.query_one("#inbox-list", ListView).focus()
 
     def _remove_main_footer(self) -> None:
@@ -119,21 +117,11 @@ class InboxScreen(Screen):
         self.mount(footer)
         footer.focus()
 
-    def _show_confirm_bulk(self, message: str, action: str) -> None:
-        self._remove_main_footer()
-        self._active_footer = "confirm"
-        self._pending_confirm_action = action
-        self._pending_archive_target = self._inbox_dir
-        footer = ConfirmFooter(message=message, id="confirm-footer")
-        self.mount(footer)
-        footer.focus()
-
     def _show_error(self, message: str) -> None:
         self._remove_main_footer()
         self._active_footer = "message"
         self._pending_import_entry = None
         self._pending_confirm_action = None
-        self._pending_archive_target = None
         footer = MessageFooter(message=message, id="message-footer")
         self.mount(footer)
         footer.focus()
@@ -150,17 +138,8 @@ class InboxScreen(Screen):
     ) -> None:
         entry = self._pending_import_entry
         action = self._pending_confirm_action
-        archive_target = self._pending_archive_target
         self._restore_main_footer()
-        if action == "import_all" and archive_target is not None:
-            self._run_import_worker(
-                archive_target, self._config.import_all_cmd
-            )
-        elif action == "archive_all" and archive_target is not None:
-            self._run_archive_worker(
-                archive_target, self._config.archive_all_cmd
-            )
-        elif action == "archive" and entry is not None:
+        if action == "archive" and entry is not None:
             self._run_archive_worker(
                 entry.import_file, self._config.archive_cmd
             )
@@ -189,9 +168,7 @@ class InboxScreen(Screen):
             "down": self._cursor_down,
             "select": self._open_selected,
             "import_active": self._import_active,
-            "import_all_pending": self._import_all_pending,
             "archive_active": self._archive_active,
-            "archive_all": self._archive_all,
             "refresh_inbox": self._refresh_inbox,
             "open_version_control": self._open_version_control,
             "quit": self._quit,
@@ -235,16 +212,6 @@ class InboxScreen(Screen):
             entry.import_file, self._config.import_cmd
         )
 
-    def _import_all_pending(self) -> None:
-        """Import all pending files by passing the inbox directory."""
-        if not self._config.import_all_cmd:
-            self._show_error(
-                "No import command configured."
-                " Set import_all_cmd in [general] in the config file."
-            )
-            return
-        self._show_confirm_bulk("Import all pending files?", "import_all")
-
     def _run_import_worker(self, target: str, cmd_str: str) -> None:
         self.run_worker(
             lambda: self._run_import(target, cmd_str),
@@ -282,16 +249,6 @@ class InboxScreen(Screen):
         self._show_confirm(
             "Archive this file?", entry, "archive"
         )
-
-    def _archive_all(self) -> None:
-        """Archive all files by passing the inbox directory."""
-        if not self._config.archive_all_cmd:
-            self._show_error(
-                "No archive command configured."
-                " Set archive_all_cmd in [general] in the config file."
-            )
-            return
-        self._show_confirm_bulk("Archive all files?", "archive_all")
 
     def _run_archive_worker(self, target: str, cmd_str: str) -> None:
         self.run_worker(

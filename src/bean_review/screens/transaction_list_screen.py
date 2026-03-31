@@ -37,27 +37,29 @@ class TransactionListItem(ListItem):
         else:
             self.remove_class("selected")
 
-    def compose(self) -> ComposeResult:
+    def _make_text(self) -> str:
         txn = self.review_txn.directive
-
-        # Header: date "payee" "narration"
         header_parts = [str(txn.date)]
         if txn.payee:
             header_parts.append(f'"{txn.payee}"')
         if txn.narration:
             header_parts.append(f'"{txn.narration}"')
         header = " ".join(header_parts)
-
-        # Posting lines
         posting_lines = []
         for posting in txn.postings:
             if posting.units:
                 posting_lines.append(f"  {posting.account}  {posting.units}")
             else:
                 posting_lines.append(f"  {posting.account}")
+        return header + "\n" + "\n".join(posting_lines)
 
-        full_text = header + "\n" + "\n".join(posting_lines)
-        yield Label(full_text, classes="txn-content")
+    def refresh_content(self) -> None:
+        """Update label text and CSS classes in-place."""
+        self._update_classes()
+        self.query_one(".txn-content", Label).update(self._make_text())
+
+    def compose(self) -> ComposeResult:
+        yield Label(self._make_text(), classes="txn-content")
 
 
 class TransactionListScreen(Screen):
@@ -90,10 +92,6 @@ class TransactionListScreen(Screen):
     }
 
     ListView > ListItem.--highlight {
-        background: $accent;
-    }
-
-    #transaction-list > ListItem.suggestion-selected {
         background: $accent;
     }
     """
@@ -168,47 +166,54 @@ class TransactionListScreen(Screen):
         list_view = self.query_one("#transaction-list", ListView)
         list_view.focus()
 
-    def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
-        """Update selection class when highlighted item changes."""
-        list_view = self.query_one("#transaction-list", ListView)
-        for i, item in enumerate(list_view.children):
-            if isinstance(item, TransactionListItem):
-                if i == list_view.index:
-                    item.add_class("suggestion-selected")
-                else:
-                    item.remove_class("suggestion-selected")
-
     def _restore_position_and_focus(self, current_idx: int | None) -> None:
-        """Find list position for transaction index and rebuild with highlight."""
-        highlight_pos = 0
-        if current_idx is not None:
-            visible = self._get_visible_transactions()
-            for list_idx, (real_idx, _) in enumerate(visible):
-                if real_idx == current_idx:
-                    highlight_pos = list_idx
-                    break
-        self._rebuild_list(highlight_index=highlight_pos)
-        self.query_one("#transaction-list", ListView).focus()
+        """Update items in-place and move cursor to current transaction.
 
-    def on_mount(self) -> None:
+        If the visible item count changed (e.g. filter + toggle_complete),
+        falls back to a full async rebuild via a worker.
+        """
+        list_view = self.query_one("#transaction-list", ListView)
+        visible = self._get_visible_transactions()
+        items = list(list_view.query(TransactionListItem))
+
+        if len(items) == len(visible):
+            for item, (real_idx, txn) in zip(items, visible):
+                item.review_txn = txn
+                item.refresh_content()
+            if current_idx is not None:
+                for list_idx, (real_idx, _) in enumerate(visible):
+                    if real_idx == current_idx:
+                        list_view.index = list_idx
+                        break
+        else:
+            highlight_pos = 0
+            if current_idx is not None:
+                for list_idx, (real_idx, _) in enumerate(visible):
+                    if real_idx == current_idx:
+                        highlight_pos = list_idx
+                        break
+            self.run_worker(
+                self._rebuild_list(highlight_index=highlight_pos),
+                name="rebuild",
+            )
+
+        list_view.focus()
+
+    async def on_mount(self) -> None:
         """Populate and focus the list view on mount."""
         self._active_footer = "main"
-        self._rebuild_list(highlight_index=0)
+        await self._rebuild_list(highlight_index=0)
         self._update_footer_status()
         self.query_one("#transaction-list", ListView).focus()
 
-    def _rebuild_list(self, highlight_index: int = 0) -> None:
-        """Rebuild the transaction list with highlighting."""
+    async def _rebuild_list(self, highlight_index: int = 0) -> None:
+        """Rebuild the transaction list (used on mount and filter toggle)."""
         list_view = self.query_one("#transaction-list", ListView)
-        list_view.clear()
-
         transactions = self._get_visible_transactions()
-        for list_idx, (real_idx, txn) in enumerate(transactions):
-            item = TransactionListItem(txn, real_idx)
-            if list_idx == highlight_index:
-                item.add_class("suggestion-selected")
-            list_view.append(item)
-
+        await list_view.clear()
+        await list_view.extend(
+            [TransactionListItem(txn, real_idx) for real_idx, txn in transactions]
+        )
         if transactions:
             list_view.index = highlight_index
 
@@ -351,7 +356,18 @@ class TransactionListScreen(Screen):
         current_idx = self._get_current_transaction_index()
         self._filter_incomplete = not self._filter_incomplete
         self._update_footer_state()
-        self._restore_position_and_focus(current_idx)
+        visible = self._get_visible_transactions()
+        highlight_pos = 0
+        if current_idx is not None:
+            for list_idx, (real_idx, _) in enumerate(visible):
+                if real_idx == current_idx:
+                    highlight_pos = list_idx
+                    break
+        self.run_worker(
+            self._rebuild_list(highlight_index=highlight_pos),
+            name="rebuild",
+        )
+        self.query_one("#transaction-list", ListView).focus()
 
     def _toggle_complete(self) -> None:
         """Toggle complete/incomplete flag for selected or current transaction."""

@@ -108,6 +108,38 @@ async def test_progress_empty_beancount_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_append_and_archive_deletes_beancount_file(
+    tmp_path: Path,
+) -> None:
+    """append_and_archive must delete the .beancount file on success."""
+    csv = tmp_path / "bank.csv"
+    beancount = tmp_path / "bank.csv.beancount"
+    csv.touch()
+    beancount.touch()
+
+    ledger = tmp_path / "ledger.beancount"
+    ledger.touch()
+    config = Config(
+        ledger_file=str(ledger),
+        archive_cmd="echo",
+    )
+    app = ReviewerApp(config, inbox_dir=str(tmp_path))
+
+    async with app.run_test() as pilot:
+        screen = pilot.app.screen
+        assert isinstance(screen, InboxScreen)
+        assert beancount.exists()
+
+        screen._append_and_archive_active()
+        await pilot.pause()
+        await pilot.press("y")
+        await pilot.pause()
+        await pilot.pause()
+
+        assert not beancount.exists()
+
+
+@pytest.mark.asyncio
 async def test_refresh_inbox(tmp_path: Path) -> None:
     make_inbox(tmp_path)
     app = ReviewerApp(load_config(None), inbox_dir=str(tmp_path))

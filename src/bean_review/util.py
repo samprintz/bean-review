@@ -1,5 +1,8 @@
 import os
+import shlex
+import subprocess
 import sys
+from collections.abc import Callable
 
 from beancount import loader
 from beancount.core import getters
@@ -46,6 +49,26 @@ def scan_inbox(inbox_dir: str) -> list["InboxEntry"]:
                 inbox_root=inbox_dir,
             ))
     return sorted(entries, key=lambda e: e.display_name)
+
+
+def run_archive(
+    target: str,
+    cmd_str: str,
+    beancount_file: str | None = None,
+    on_success: Callable[[], None] | None = None,
+    on_error: Callable[[str], None] | None = None,
+) -> None:
+    """Run archive command; delete beancount_file and call on_success on exit 0."""
+    cmd = shlex.split(cmd_str) + [target]
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
+        if on_error:
+            on_error(f"Archive failed (exit {result.returncode}).")
+    else:
+        if beancount_file and os.path.exists(beancount_file):
+            os.remove(beancount_file)
+        if on_success:
+            on_success()
 
 
 def load_accounts_from_ledger(ledger_path: str) -> list[str]:

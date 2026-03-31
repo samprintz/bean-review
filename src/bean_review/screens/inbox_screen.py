@@ -1,5 +1,6 @@
 """Inbox screen: lists import files in an inbox directory."""
 
+import os
 import shlex
 import subprocess
 
@@ -11,7 +12,7 @@ from textual.widgets import Header, Label, ListItem, ListView
 from ..config import Config
 from ..keymap import Keymap
 from ..models import InboxEntry
-from ..util import create_review_file, parse_file, scan_inbox
+from ..util import create_review_file, parse_file, run_archive, scan_inbox
 from ..widgets import ConfirmFooter, Footer, HelpFooter, MessageFooter
 
 
@@ -197,7 +198,9 @@ class InboxScreen(Screen):
                 )
                 self.app.append_to_ledger(review_file)
             self._run_archive_worker(
-                entry.import_file, self._config.archive_cmd
+                entry.import_file,
+                self._config.archive_cmd,
+                beancount_file=entry.beancount_file,
             )
         elif entry is not None:
             self._run_import_worker(
@@ -346,24 +349,26 @@ class InboxScreen(Screen):
             "Archive this file?", entry, "archive"
         )
 
-    def _run_archive_worker(self, target: str, cmd_str: str) -> None:
+    def _run_archive_worker(
+        self,
+        target: str,
+        cmd_str: str,
+        beancount_file: str | None = None,
+    ) -> None:
+        def on_success() -> None:
+            self.app.call_from_thread(self._reload)
+
+        def on_error(msg: str) -> None:
+            self.app.call_from_thread(self.notify, msg, severity="error")
+
         self.run_worker(
-            lambda: self._run_archive(target, cmd_str),
+            lambda: run_archive(
+                target, cmd_str, beancount_file,
+                on_success=on_success, on_error=on_error,
+            ),
             thread=True,
             name="archive",
         )
-
-    def _run_archive(self, target: str, cmd_str: str) -> None:
-        """Run the archive command against target; reload on completion."""
-        cmd = shlex.split(cmd_str) + [target]
-        result = subprocess.run(cmd)
-        if result.returncode != 0:
-            self.app.call_from_thread(
-                self.notify,
-                f"Archive failed (exit {result.returncode}).",
-                severity="error",
-            )
-        self.app.call_from_thread(self._reload)
 
     def _open_version_control(self) -> None:
         """Open the version control tool for the beancount ledger directory."""

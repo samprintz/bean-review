@@ -1,5 +1,4 @@
 import os
-import shlex
 import subprocess
 import tempfile
 
@@ -13,7 +12,7 @@ from ..ai_client import predict_accounts
 from ..config import Config
 from ..keymap import Keymap
 from ..models import ReviewFile, ReviewTransaction
-from ..util import load_accounts_from_ledger
+from ..util import load_accounts_from_ledger, run_archive
 from ..widgets import (
     ConfirmFooter,
     EditTextFooter,
@@ -524,7 +523,9 @@ class TransactionListScreen(Screen):
         elif action == "append_and_archive":
             self.app.append_to_ledger(self.review_file)
             self._run_archive_worker(
-                self._inbox_import_file, self.app.config.archive_cmd
+                self._inbox_import_file,
+                self.app.config.archive_cmd,
+                beancount_file=self.source_file,
             )
         elif action == "quit":
             self.app.exit()
@@ -741,32 +742,34 @@ class TransactionListScreen(Screen):
             message = "Append to ledger and archive? Cannot be undone."
         self._show_confirm(message, "append_and_archive")
 
-    def _run_archive_worker(self, target: str, cmd_str: str) -> None:
+    def _run_archive_worker(
+        self,
+        target: str,
+        cmd_str: str,
+        beancount_file: str | None = None,
+    ) -> None:
+        def on_success() -> None:
+            if self._back_to_inbox:
+                def _reload_and_pop() -> None:
+                    from .inbox_screen import InboxScreen
+                    for screen in self.app.screen_stack:
+                        if isinstance(screen, InboxScreen):
+                            screen._refresh_inbox()
+                            break
+                    self.app.pop_screen()
+                self.app.call_from_thread(_reload_and_pop)
+
+        def on_error(msg: str) -> None:
+            self.app.call_from_thread(self.notify, msg, severity="error")
+
         self.run_worker(
-            lambda: self._run_archive(target, cmd_str),
+            lambda: run_archive(
+                target, cmd_str, beancount_file,
+                on_success=on_success, on_error=on_error,
+            ),
             thread=True,
             name="archive",
         )
-
-    def _run_archive(self, target: str, cmd_str: str) -> None:
-        """Run archive command; pop back to inbox on success."""
-        cmd = shlex.split(cmd_str) + [target]
-        result = subprocess.run(cmd)
-        if result.returncode != 0:
-            self.app.call_from_thread(
-                self.notify,
-                f"Archive failed (exit {result.returncode}).",
-                severity="error",
-            )
-        elif self._back_to_inbox:
-            def _reload_and_pop() -> None:
-                from .inbox_screen import InboxScreen
-                for screen in self.app.screen_stack:
-                    if isinstance(screen, InboxScreen):
-                        screen._refresh_inbox()
-                        break
-                self.app.pop_screen()
-            self.app.call_from_thread(_reload_and_pop)
 
     def _open_version_control(self) -> None:
         """Open the version control tool for the beancount ledger directory."""

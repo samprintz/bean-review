@@ -62,16 +62,16 @@ import_cmd = python beancount-importer.py
 ### Version Control Tool
 
 Press `V` to open a version control tool for the beancount ledger directory.
-The default command is:
+Configure the command in the config file:
 
 ```ini
 [general]
 vc_cmd = tig -C $BEANCOUNT_LEDGER_DIR
 ```
 
-Override the command in the config file to use a different tool.
 The command is passed to the shell, so environment variables are expanded.
 The TUI is suspended while the tool runs and resumes on exit.
+If `vc_cmd` is not configured, pressing `V` shows an error hint.
 
 ### AI Account Prediction
 

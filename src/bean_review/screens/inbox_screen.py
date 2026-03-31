@@ -169,6 +169,12 @@ class InboxScreen(Screen):
 
     def _open_vc(self) -> None:
         """Open the version control tool for the beancount ledger directory."""
+        if not self._config.vc_cmd:
+            self._show_error(
+                "No VC command configured."
+                " Set vc_cmd in [general] in the config file."
+            )
+            return
         with self.app.suspend():
             subprocess.call(self._config.vc_cmd, shell=True)
 

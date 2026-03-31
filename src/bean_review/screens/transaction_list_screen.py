@@ -681,8 +681,15 @@ class TransactionListScreen(Screen):
 
     def _open_vc(self) -> None:
         """Open the version control tool for the beancount ledger directory."""
+        if not self.config.vc_cmd:
+            self.notify(
+                "No VC command configured."
+                " Set vc_cmd in [general] in the config file.",
+                severity="error",
+            )
+            return
         with self.app.suspend():
-            subprocess.call(self._config.vc_cmd, shell=True)
+            subprocess.call(self.config.vc_cmd, shell=True)
 
     def _view_inbox(self) -> None:
         """Return to inbox screen if opened from there."""

@@ -40,7 +40,6 @@ DEFAULT_KEYBINDINGS = {
     "open_vc": "V",
 }
 
-DEFAULT_VC_CMD = "tig -C $BEANCOUNT_LEDGER_DIR"
 
 
 @dataclass
@@ -51,7 +50,7 @@ class Config:
     ai_port: int = 8080
     import_cmd: str | None = None
     import_all_cmd: str | None = None
-    vc_cmd: str = DEFAULT_VC_CMD
+    vc_cmd: str | None = None
 
     def get_key(self, action: str) -> str:
         return self.keybindings.get(action, DEFAULT_KEYBINDINGS.get(action, ""))

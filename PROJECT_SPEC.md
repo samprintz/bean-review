@@ -51,7 +51,7 @@ alongside their `.beancount` counterparts produced by `bean-stage`.
   There is no default; the keys are inert until a command is configured.
 - `V` opens a version control tool for the beancount ledger directory.
   - Configured via `vc_cmd` in the `[general]` section of the config file.
-  - Default: `tig -C $BEANCOUNT_LEDGER_DIR`
+  - There is no default; pressing `V` without configuration shows a hint.
   - The TUI is suspended while the tool runs; it resumes on exit.
   - The command is passed to the shell, so environment variables are expanded.
 - `q` quits the application.

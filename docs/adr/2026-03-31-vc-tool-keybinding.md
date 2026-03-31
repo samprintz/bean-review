@@ -10,15 +10,9 @@ Add an `open_vc` action (default key: `V`) to both the Inbox Screen and the
 Transaction List Screen.
 
 The command to run is configured via `vc_cmd` in the `[general]` section of
-the config file. Unlike `import_cmd`, `vc_cmd` ships with a built-in default:
-
-```
-tig -C $BEANCOUNT_LEDGER_DIR
-```
-
-This follows the pattern of `$EDITOR` used for external editing: a sensible
-default that works out of the box, overridable for those with different
-preferences.
+the config file, following the same pattern as `import_cmd`: the key is inert
+until configured, and pressing `V` without a configured command shows an error
+hint to set `vc_cmd` in the config file.
 
 The command is passed to the shell (`subprocess.call(..., shell=True)`) so that
 environment variables like `$BEANCOUNT_LEDGER_DIR` are expanded at runtime.
@@ -29,6 +23,6 @@ the tool exits.
 
 ## Consequences
 
-- Works without any configuration (unlike `import_cmd`).
-- Shell variable expansion makes the default command self-contained.
+- Requires explicit configuration, consistent with `import_cmd`.
+- Shell variable expansion allows commands like `tig -C $BEANCOUNT_LEDGER_DIR`.
 - Available from both screens so users can check VC status at any point.

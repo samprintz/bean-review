@@ -73,13 +73,14 @@ class InboxScreen(Screen):
 
     def _reload(self) -> None:
         """Reload inbox entries from disk and repopulate the list."""
-        self._entries = scan_inbox(self._inbox_dir)
         list_view = self.query_one("#inbox-list", ListView)
+        previous_index = list_view.index or 0
+        self._entries = scan_inbox(self._inbox_dir)
         list_view.clear()
         for entry in self._entries:
             list_view.append(InboxListItem(entry))
         if self._entries:
-            list_view.index = 0
+            list_view.index = min(previous_index, len(self._entries) - 1)
         list_view.focus()
 
     def _restore_main_footer(self) -> None:

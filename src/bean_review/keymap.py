@@ -37,6 +37,7 @@ TRANSACTION_LIST_ACTIONS = {
     "unselect_all": Action("unselect_all", "Unselect all"),
     "save": Action("save", "Save"),
     "append_to_ledger": Action("append_to_ledger", "Append to ledger"),
+    "append_and_archive": Action("append_and_archive", "Append & archive"),
     "quit": Action("quit", "Quit"),
     "help": Action("help", "Help"),
     "predict_selected": Action("predict_selected", "Predict account(s)"),
@@ -52,6 +53,7 @@ INBOX_ACTIONS = {
     "select": Action("select", "Open"),
     "import_active": Action("import_active", "Import file"),
     "archive_active": Action("archive_active", "Archive file"),
+    "append_and_archive": Action("append_and_archive", "Append & archive"),
     "refresh_inbox": Action("refresh_inbox", "Refresh"),
     "open_version_control": Action("open_version_control", "Open version control"),
     "quit": Action("quit", "Quit"),
@@ -70,7 +72,7 @@ class Keymap:
     @classmethod
     def for_transaction_list(cls, config: Config) -> "Keymap":
         """Create keymap for transaction list screen."""
-        bindings = {
+        raw = {
             config.get_key("up"): "up",
             config.get_key("down"): "down",
             config.get_key("top"): "top",
@@ -93,6 +95,7 @@ class Keymap:
             config.get_key("unselect_all"): "unselect_all",
             config.get_key("save"): "save",
             config.get_key("append_to_ledger"): "append_to_ledger",
+            config.get_key("append_and_archive"): "append_and_archive",
             config.get_key("quit"): "quit",
             config.get_key("help"): "help",
             config.get_key("predict_selected"): "predict_selected",
@@ -100,22 +103,25 @@ class Keymap:
             config.get_key("view_inbox"): "view_inbox",
             config.get_key("open_version_control"): "open_version_control",
         }
+        bindings = {k: v for k, v in raw.items() if k}
         return cls(bindings=bindings, actions=TRANSACTION_LIST_ACTIONS)
 
     @classmethod
     def for_inbox(cls, config: Config) -> "Keymap":
         """Create keymap for inbox screen."""
-        bindings = {
+        raw = {
             config.get_key("up"): "up",
             config.get_key("down"): "down",
             config.get_key("select"): "select",
             config.get_key("import_active"): "import_active",
             config.get_key("archive_active"): "archive_active",
+            config.get_key("append_and_archive"): "append_and_archive",
             config.get_key("refresh_inbox"): "refresh_inbox",
             config.get_key("open_version_control"): "open_version_control",
             config.get_key("quit"): "quit",
             config.get_key("help"): "help",
         }
+        bindings = {k: v for k, v in raw.items() if k}
         return cls(bindings=bindings, actions=INBOX_ACTIONS)
 
     def resolve(self, key: str) -> str | None:

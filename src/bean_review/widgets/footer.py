@@ -59,7 +59,7 @@ class Footer(Widget):
         "edit_category",
         "select",
         "save",
-        "append_to_ledger",
+        "append_and_archive",
         "quit",
     ]
 

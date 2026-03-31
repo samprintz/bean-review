@@ -61,6 +61,7 @@ class InboxScreen(Screen):
         "help", "select",
         "import_active",
         "archive_active",
+        "append_and_archive",
         "quit",
     ]
 
@@ -143,6 +144,16 @@ class InboxScreen(Screen):
             self._run_archive_worker(
                 entry.import_file, self._config.archive_cmd
             )
+        elif action == "append_and_archive" and entry is not None:
+            transactions = parse_file(entry.beancount_file)
+            if transactions:
+                review_file = create_review_file(
+                    transactions, entry.beancount_file
+                )
+                self.app.append_to_ledger(review_file)
+            self._run_archive_worker(
+                entry.import_file, self._config.archive_cmd
+            )
         elif entry is not None:
             self._run_import_worker(
                 entry.import_file, self._config.import_cmd
@@ -161,6 +172,36 @@ class InboxScreen(Screen):
     def on_help_footer_closed(self, event: HelpFooter.Closed) -> None:
         self._restore_main_footer()
 
+    def _append_and_archive_active(self) -> None:
+        """Append to ledger and archive the currently focused file."""
+        if not self._config.archive_cmd:
+            self._show_error(
+                "No archive command configured."
+                " Set archive_cmd in [general] in the config file."
+            )
+            return
+        if not self.app.config.ledger_file:
+            self._show_error(
+                "No ledger file configured."
+                " Use --ledger-file or set BEANCOUNT_FILE."
+            )
+            return
+        list_view = self.query_one("#inbox-list", ListView)
+        idx = list_view.index
+        if idx is None or idx >= len(self._entries):
+            return
+        entry = self._entries[idx]
+        if not entry.is_reviewable:
+            self._show_error(
+                "No beancount file to append from."
+            )
+            return
+        self._show_confirm(
+            "Append to ledger and archive? Cannot be undone.",
+            entry,
+            "append_and_archive",
+        )
+
     def _run_action(self, action: str) -> None:
         """Execute an action by name."""
         action_map = {
@@ -169,6 +210,7 @@ class InboxScreen(Screen):
             "select": self._open_selected,
             "import_active": self._import_active,
             "archive_active": self._archive_active,
+            "append_and_archive": self._append_and_archive_active,
             "refresh_inbox": self._refresh_inbox,
             "open_version_control": self._open_version_control,
             "quit": self._quit,
@@ -309,6 +351,7 @@ class InboxScreen(Screen):
             review_file,
             self._config,
             source_file=entry.beancount_file,
+            inbox_import_file=entry.import_file,
             back_to_inbox=True,
         ))
 

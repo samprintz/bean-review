@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 import tempfile
 
@@ -110,6 +111,7 @@ class TransactionListScreen(Screen):
         review_file: ReviewFile,
         config: Config,
         source_file: str | None = None,
+        inbox_import_file: str | None = None,
         back_to_inbox: bool = False,
         name: str | None = None,
         id: str | None = None,
@@ -119,6 +121,7 @@ class TransactionListScreen(Screen):
         self.review_file = review_file
         self.config = config
         self.source_file = source_file
+        self._inbox_import_file = inbox_import_file
         self._back_to_inbox = back_to_inbox
         self.keymap = Keymap.for_transaction_list(config)
         self._filter_incomplete = False
@@ -273,6 +276,7 @@ class TransactionListScreen(Screen):
             "unselect_all": self._unselect_all,
             "save": self._save,
             "append_to_ledger": self._append_to_ledger,
+            "append_and_archive": self._append_and_archive,
             "quit": self._quit_app,
             "help": self._show_help,
             "view_inbox": self._view_inbox,
@@ -517,6 +521,11 @@ class TransactionListScreen(Screen):
             self.app.save(self.review_file, self.source_file)
         elif action == "append_to_ledger":
             self.app.append_to_ledger(self.review_file)
+        elif action == "append_and_archive":
+            self.app.append_to_ledger(self.review_file)
+            self._run_archive_worker(
+                self._inbox_import_file, self.app.config.archive_cmd
+            )
         elif action == "quit":
             self.app.exit()
 
@@ -692,9 +701,60 @@ class TransactionListScreen(Screen):
     def _append_to_ledger(self) -> None:
         """Show append-to-ledger confirmation footer."""
         if not self.app.config.ledger_file:
-            self.notify("No ledger file configured. Use --ledger-file or set BEANCOUNT_FILE.", severity="error")
+            self.notify(
+                "No ledger file configured."
+                " Use --ledger-file or set BEANCOUNT_FILE.",
+                severity="error",
+            )
             return
         self._show_confirm("Append to ledger?", "append_to_ledger")
+
+    def _append_and_archive(self) -> None:
+        """Show confirm footer for append-to-ledger + archive."""
+        if not self.app.config.ledger_file:
+            self.notify(
+                "No ledger file configured."
+                " Use --ledger-file or set BEANCOUNT_FILE.",
+                severity="error",
+            )
+            return
+        if not self.app.config.archive_cmd:
+            self.notify(
+                "No archive command configured."
+                " Set archive_cmd in [general] in the config file.",
+                severity="error",
+            )
+            return
+        if not self._inbox_import_file:
+            self.notify(
+                "Archive not available: not opened from inbox.",
+                severity="error",
+            )
+            return
+        self._show_confirm(
+            "Append to ledger and archive? Cannot be undone.",
+            "append_and_archive",
+        )
+
+    def _run_archive_worker(self, target: str, cmd_str: str) -> None:
+        self.run_worker(
+            lambda: self._run_archive(target, cmd_str),
+            thread=True,
+            name="archive",
+        )
+
+    def _run_archive(self, target: str, cmd_str: str) -> None:
+        """Run archive command; pop back to inbox on success."""
+        cmd = shlex.split(cmd_str) + [target]
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            self.app.call_from_thread(
+                self.notify,
+                f"Archive failed (exit {result.returncode}).",
+                severity="error",
+            )
+        elif self._back_to_inbox:
+            self.app.call_from_thread(self.app.pop_screen)
 
     def _open_version_control(self) -> None:
         """Open the version control tool for the beancount ledger directory."""

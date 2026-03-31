@@ -73,7 +73,7 @@ When the Transaction List Screen is opened from the Inbox Screen:
 - `SPACE` selects/deselects focused transaction
 - `u` toggles complete status (focused or all selected)
 - `c` opens account selector (focused or all selected)
-- `A`/`I`/`S` edits narration (append/insert/substitute mode)
+- `a`/`i`/`s` edits narration (append/insert/substitute mode)
 - `P` predicts account for focused or selected transactions (requires `--ai-host`)
 - `g P` predicts accounts for all unconfirmed transactions (requires `--ai-host`)
 - `n`/`p` jumps to next/previous incomplete transaction
@@ -105,7 +105,7 @@ When the Transaction List Screen is opened from the Inbox Screen:
 ### Narration Editor
 
 - Single-line text input footer dialog
-- vim-like modes: `A` (append), `I` (insert), `S` (substitute)
+- vim-like modes: `a` (append), `i` (insert), `s` (substitute)
 - Applies to focused or all selected transactions
 - Submit with `ENTER`, cancel with `ESC`
 

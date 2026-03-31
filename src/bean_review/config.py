@@ -37,7 +37,10 @@ DEFAULT_KEYBINDINGS = {
     "import_all_pending": "g B",
     "refresh_inbox": "f5",
     "view_inbox": "h",
+    "open_vc": "V",
 }
+
+DEFAULT_VC_CMD = "tig -C $BEANCOUNT_LEDGER_DIR"
 
 
 @dataclass
@@ -48,6 +51,7 @@ class Config:
     ai_port: int = 8080
     import_cmd: str | None = None
     import_all_cmd: str | None = None
+    vc_cmd: str = DEFAULT_VC_CMD
 
     def get_key(self, action: str) -> str:
         return self.keybindings.get(action, DEFAULT_KEYBINDINGS.get(action, ""))
@@ -91,6 +95,7 @@ def load_config(
     config_file_ledger: str | None = None
     config_file_import_cmd: str | None = None
     config_file_import_all_cmd: str | None = None
+    config_file_vc_cmd: str | None = None
 
     if config_path.exists():
         parser = configparser.ConfigParser()
@@ -100,6 +105,7 @@ def load_config(
             config_file_ledger = parser["general"].get("ledger_file")
             config_file_import_cmd = parser["general"].get("import_cmd")
             config_file_import_all_cmd = parser["general"].get("import_all_cmd")
+            config_file_vc_cmd = parser["general"].get("vc_cmd")
 
         if "keybindings" in parser:
             for action, key in parser["keybindings"].items():
@@ -119,6 +125,8 @@ def load_config(
     config.import_cmd = config_file_import_cmd or None
     config.import_all_cmd = config_file_import_all_cmd \
             or config_file_import_cmd or None
+    if config_file_vc_cmd:
+        config.vc_cmd = config_file_vc_cmd
 
     if ai_host_override:
         config.ai_host = ai_host_override

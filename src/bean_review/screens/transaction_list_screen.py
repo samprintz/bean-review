@@ -265,6 +265,7 @@ class TransactionListScreen(Screen):
             "quit": self._quit_app,
             "help": self._show_help,
             "view_inbox": self._view_inbox,
+            "open_vc": self._open_vc,
         }
         handler = action_map.get(action)
         if handler:
@@ -677,6 +678,11 @@ class TransactionListScreen(Screen):
             self.notify("No ledger file configured. Use --ledger-file or set BEANCOUNT_FILE.", severity="error")
             return
         self._show_confirm("Append to ledger?", "append_to_ledger")
+
+    def _open_vc(self) -> None:
+        """Open the version control tool for the beancount ledger directory."""
+        with self.app.suspend():
+            subprocess.call(self._config.vc_cmd, shell=True)
 
     def _view_inbox(self) -> None:
         """Return to inbox screen if opened from there."""

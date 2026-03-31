@@ -3,6 +3,7 @@
 import shlex
 import subprocess
 from textual.app import ComposeResult
+import os
 from textual.screen import Screen
 from textual.widgets import Header, Label, ListItem, ListView, Static
 
@@ -166,6 +167,11 @@ class InboxScreen(Screen):
             self.app.call_from_thread(self.notify, "Import complete.")
         self.app.call_from_thread(self._reload)
 
+    def _open_vc(self) -> None:
+        """Open the version control tool for the beancount ledger directory."""
+        with self.app.suspend():
+            subprocess.call(self._config.vc_cmd, shell=True)
+
     def _open_selected(self) -> None:
         """Open the transaction screen for the currently selected inbox entry."""
         list_view = self.query_one("#inbox-list", ListView)
@@ -218,6 +224,10 @@ class InboxScreen(Screen):
             event.stop()
         elif action == "refresh_inbox":
             self._reload()
+            event.prevent_default()
+            event.stop()
+        elif action == "open_vc":
+            self._open_vc()
             event.prevent_default()
             event.stop()
         elif action == "quit":

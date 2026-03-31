@@ -49,6 +49,11 @@ alongside their `.beancount` counterparts produced by `bean-stage`.
   - `import_cmd`: used for single-file import (`B`) and as fallback for `g B`.
   - `import_all_cmd`: used for bulk import (`g B`)
   There is no default; the keys are inert until a command is configured.
+- `V` opens a version control tool for the beancount ledger directory.
+  - Configured via `vc_cmd` in the `[general]` section of the config file.
+  - Default: `tig -C $BEANCOUNT_LEDGER_DIR`
+  - The TUI is suspended while the tool runs; it resumes on exit.
+  - The command is passed to the shell, so environment variables are expanded.
 - `q` quits the application.
 - The `InboxEntry` data class represents one entry: `import_file`, `beancount_file`
   (or `None`), and `inbox_root`.
@@ -78,6 +83,7 @@ When the Transaction List Screen is opened from the Inbox Screen:
 - `W` appends transactions to configured ledger file (with confirm)
   shows error of no ledger file configured
 - `q` quits (with confirm)
+- `V` opens the version control tool (see Inbox Screen for configuration)
 - Editing preserves focus on current transaction
 
 ### Navigation

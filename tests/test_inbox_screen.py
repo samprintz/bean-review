@@ -62,11 +62,14 @@ async def test_entry_selection_preserved_after_reload(tmp_path: Path) -> None:
         assert list_view.index == 1
 
         # Simulate what happens after import: reload the list
-        screen._reload()
+        await screen._reload()
         await pilot.pause()
 
         # The selection should remain at index 1, not jump back to 0
         assert list_view.index == 1
+        # The item at index 1 must be visually highlighted
+        assert list_view.highlighted_child is not None
+        assert list_view.highlighted_child.highlighted is True
 
 
 @pytest.mark.asyncio

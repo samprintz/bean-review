@@ -21,48 +21,46 @@ pip install -e .
 
 ## Usage
 
-Call with input file:
-
-    bean-review <input_file>
-
-Call with inbox directory to review all staged files:
-
-    bean-review <inbox_dir>
-
-Directly read from beangulp importer output:
-
-    bean-review <(python import.py extract $BEANCOUNT_IMPORT_DIR)
+```bash
+bean-review <input_file>       # open a .beancount file directly
+bean-review <inbox_dir>        # open inbox screen for staged files
+bean-review <(python import.py extract $BEANCOUNT_IMPORT_DIR)  # read from beangulp
+```
 
 ## Configuration
 
-- Default config: `~/.config/beancount/bean-review.conf`
-- Override with `--config` CLI argument
+Default config: `~/.config/beancount/bean-review.conf`
+Override with `--config`.
 
-### Keybindings
+### Export to main ledger
 
-Keybindings configurable in config file.
+Priority for resolving the main ledger file (descending):
 
-### Main Ledger File Resolution
-
-Priority (descending):
 1. CLI: `--ledger-file`
-2. Config: `[general]` → `ledger_file`
+2. Config: `ledger_file`
 3. Environment: `BEANCOUNT_FILE`
-
-### Import Command
-
-The inbox screen can trigger an importer to transform pending files.
-Configure the command in the config file:
 
 ```ini
 [general]
-import_cmd = python beancount-importer.py
+ledger_file = ~/ledger/main.beancount
 ```
 
-### Version Control Tool
+### Import with beangulp
 
-Press `V` to open a version control tool for the beancount ledger directory.
-Configure the command in the config file:
+Configure the import command to transform pending inbox files:
+
+```ini
+[general]
+import_cmd = python my-beancount-importer.py
+import_all_cmd = python my-beancount-importer.py --all
+```
+
+`import_cmd` is used for single-file import and as fallback for bulk import.
+`import_all_cmd` is used for bulk import.
+
+### Version control
+
+Opens a version control tool for the beancount ledger directory (e.g. `tig`):
 
 ```ini
 [general]
@@ -71,12 +69,15 @@ version_control_cmd = tig -C $BEANCOUNT_LEDGER_DIR
 
 The command is passed to the shell, so environment variables are expanded.
 
-### AI Account Prediction
+### AI account prediction
 
 Use an AI service like [bean-ai](https://github.com/samprintz/bean-ai)
 to predict accounts based on narrations:
 
-    bean-review input.beancount --ai-host localhost
+```bash
+bean-review input.beancount --ai-host localhost
+```
 
-The AI service should accept POST requests to `/predict`
-with a JSON body containing `{"narrations": ["..."]}` and return `{"accounts": ["..."]}`.
+The AI service must accept `POST /predict`
+with `{"narrations": ["..."]}`
+and return `{"accounts": ["..."]}`.

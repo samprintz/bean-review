@@ -3,6 +3,7 @@ from .edit_text_footer import EditTextFooter
 from .footer import Footer, KeybindingsFooter
 from .fuzzy_select_footer import FuzzySelectFooter
 from .help_footer import HelpFooter
+from .message_footer import MessageFooter
 
 __all__ = [
     "ConfirmFooter",
@@ -11,4 +12,5 @@ __all__ = [
     "FuzzySelectFooter",
     "HelpFooter",
     "KeybindingsFooter",
+    "MessageFooter",
 ]

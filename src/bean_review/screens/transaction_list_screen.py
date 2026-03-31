@@ -13,7 +13,14 @@ from ..config import Config
 from ..keymap import Keymap
 from ..models import ReviewFile, ReviewTransaction
 from ..util import load_accounts_from_ledger
-from ..widgets import ConfirmFooter, EditTextFooter, Footer, FuzzySelectFooter, HelpFooter
+from ..widgets import (
+    ConfirmFooter,
+    EditTextFooter,
+    Footer,
+    FuzzySelectFooter,
+    HelpFooter,
+    MessageFooter,
+)
 
 
 class TransactionListItem(ListItem):
@@ -149,7 +156,10 @@ class TransactionListScreen(Screen):
     def _restore_main_footer(self) -> None:
         """Restore the main footer, removing any temporary footer."""
         # Remove any temporary footers
-        for footer_id in ["confirm-footer", "category-footer", "help-footer", "edit-footer"]:
+        for footer_id in [
+            "confirm-footer", "message-footer",
+            "category-footer", "help-footer", "edit-footer",
+        ]:
             try:
                 self.query_one(f"#{footer_id}").remove()
             except Exception:
@@ -517,10 +527,16 @@ class TransactionListScreen(Screen):
         """Handle help footer closed."""
         self._restore_main_footer()
 
+    def on_message_footer_dismissed(
+        self, event: MessageFooter.Dismissed
+    ) -> None:
+        """Handle message footer dismissed."""
+        self._restore_main_footer()
+
     def on_key(self, event) -> None:
         """Handle key events."""
         # If a special footer is active, let it handle keys
-        if self._active_footer in ("confirm", "category", "help", "edit"):
+        if self._active_footer in ("confirm", "message", "category", "help", "edit"):
             return
 
         action = self.keymap.resolve(event.key)
@@ -828,14 +844,14 @@ class TransactionListScreen(Screen):
             self._show_error(f"Prediction failed: {e}")
 
     def _show_error(self, message: str) -> None:
-        """Show an error message in the confirm footer."""
+        """Show an error message footer; dismissed with any key."""
         try:
             self.query_one("#main-footer").remove()
         except Exception:
             pass
 
-        self._active_footer = "confirm"
+        self._active_footer = "message"
         self._confirm_action = None
-        footer = ConfirmFooter(message=message, id="confirm-footer")
+        footer = MessageFooter(message=message, id="message-footer")
         self.mount(footer)
         footer.focus()

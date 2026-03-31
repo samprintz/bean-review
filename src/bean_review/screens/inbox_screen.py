@@ -11,7 +11,7 @@ from ..config import Config
 from ..keymap import Keymap
 from ..models import InboxEntry
 from ..util import create_review_file, parse_file, scan_inbox
-from ..widgets import ConfirmFooter
+from ..widgets import ConfirmFooter, MessageFooter
 
 
 class InboxListItem(ListItem):
@@ -86,10 +86,11 @@ class InboxScreen(Screen):
         list_view.focus()
 
     def _restore_main_footer(self) -> None:
-        try:
-            self.query_one("#confirm-footer").remove()
-        except Exception:
-            pass
+        for footer_id in ["confirm-footer", "message-footer"]:
+            try:
+                self.query_one(f"#{footer_id}").remove()
+            except Exception:
+                pass
         self._active_footer = "main"
         self._pending_import_entry = None
         self.query_one("#inbox-list", ListView).focus()
@@ -103,15 +104,26 @@ class InboxScreen(Screen):
     def on_confirm_footer_cancelled(self, event: ConfirmFooter.Cancelled) -> None:
         self._restore_main_footer()
 
+    def on_message_footer_dismissed(
+        self, event: MessageFooter.Dismissed
+    ) -> None:
+        self._restore_main_footer()
+
     def _show_confirm(self, message: str, entry: InboxEntry) -> None:
         self._active_footer = "confirm"
         self._pending_import_entry = entry
         self._mount_confirm_footer(message)
 
     def _show_error(self, message: str) -> None:
-        self._active_footer = "confirm"
+        self._active_footer = "message"
         self._pending_import_entry = None
-        self._mount_confirm_footer(message)
+        try:
+            self.query_one("#inbox-footer").remove()
+        except Exception:
+            pass
+        footer = MessageFooter(message=message, id="message-footer")
+        self.mount(footer)
+        footer.focus()
 
     def _mount_confirm_footer(self, message: str) -> None:
         try:
@@ -206,7 +218,7 @@ class InboxScreen(Screen):
         ))
 
     def on_key(self, event) -> None:
-        if self._active_footer == "confirm":
+        if self._active_footer in ("confirm", "message"):
             return
 
         action = self._keymap.resolve(event.key)

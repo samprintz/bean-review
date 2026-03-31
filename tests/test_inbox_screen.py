@@ -1,6 +1,8 @@
 import pytest
 from pathlib import Path
 
+from textual.widgets import ListView
+
 from bean_review.__main__ import ReviewerApp
 from bean_review.config import load_config
 from bean_review.screens.inbox_screen import InboxListItem, InboxScreen
@@ -41,6 +43,30 @@ async def test_inbox_screen_shows_entries(tmp_path: Path) -> None:
             ("sub/subfolder/2025-03-28-other-file-in-nested-subfolder.pdf", True),
             ("subfolder/file-in-subfolder.pdf", True),
         ]
+
+
+@pytest.mark.asyncio
+async def test_entry_selection_preserved_after_reload(tmp_path: Path) -> None:
+    make_inbox(tmp_path)
+    app = ReviewerApp(load_config(None), inbox_dir=str(tmp_path))
+
+    async with app.run_test() as pilot:
+        assert isinstance(pilot.app.screen, InboxScreen)
+        screen = pilot.app.screen
+
+        # Navigate to the second entry (index 1)
+        await pilot.press("down")
+        await pilot.pause()
+
+        list_view = screen.query_one("#inbox-list", ListView)
+        assert list_view.index == 1
+
+        # Simulate what happens after import: reload the list
+        screen._reload()
+        await pilot.pause()
+
+        # The selection should remain at index 1, not jump back to 0
+        assert list_view.index == 1
 
 
 @pytest.mark.asyncio

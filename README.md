@@ -59,6 +59,18 @@ Configure the command in the config file:
 import_cmd = python beancount-importer.py
 ```
 
+### Version Control Tool
+
+Press `V` to open a version control tool for the beancount ledger directory.
+Configure the command in the config file:
+
+```ini
+[general]
+version_control_cmd = tig -C $BEANCOUNT_LEDGER_DIR
+```
+
+The command is passed to the shell, so environment variables are expanded.
+
 ### AI Account Prediction
 
 Use an AI service like [bean-ai](https://github.com/samprintz/bean-ai)

@@ -37,6 +37,7 @@ DEFAULT_KEYBINDINGS = {
     "import_all_pending": "g B",
     "refresh_inbox": "f5",
     "view_inbox": "h",
+    "open_version_control": "V",
 }
 
 
@@ -48,6 +49,7 @@ class Config:
     ai_port: int = 8080
     import_cmd: str | None = None
     import_all_cmd: str | None = None
+    version_control_cmd: str | None = None
 
     def get_key(self, action: str) -> str:
         return self.keybindings.get(action, DEFAULT_KEYBINDINGS.get(action, ""))
@@ -91,6 +93,7 @@ def load_config(
     config_file_ledger: str | None = None
     config_file_import_cmd: str | None = None
     config_file_import_all_cmd: str | None = None
+    config_file_version_control_cmd: str | None = None
 
     if config_path.exists():
         parser = configparser.ConfigParser()
@@ -100,6 +103,8 @@ def load_config(
             config_file_ledger = parser["general"].get("ledger_file")
             config_file_import_cmd = parser["general"].get("import_cmd")
             config_file_import_all_cmd = parser["general"].get("import_all_cmd")
+            config_file_version_control_cmd = \
+                parser["general"].get("version_control_cmd")
 
         if "keybindings" in parser:
             for action, key in parser["keybindings"].items():
@@ -119,6 +124,8 @@ def load_config(
     config.import_cmd = config_file_import_cmd or None
     config.import_all_cmd = config_file_import_all_cmd \
             or config_file_import_cmd or None
+    if config_file_version_control_cmd:
+        config.version_control_cmd = config_file_version_control_cmd
 
     if ai_host_override:
         config.ai_host = ai_host_override

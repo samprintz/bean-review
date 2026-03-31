@@ -42,6 +42,7 @@ TRANSACTION_LIST_ACTIONS = {
     "predict_selected": Action("predict_selected", "Predict account(s)"),
     "predict_all_unconfirmed": Action("predict_all_unconfirmed", "Predict all unconfirmed"),
     "view_inbox": Action("view_inbox", "View inbox"),
+    "open_version_control": Action("open_version_control", "Open version control"),
 }
 
 
@@ -53,6 +54,7 @@ INBOX_ACTIONS = {
     "import_all_pending": Action("import_all_pending", "Import all pending"),
     "refresh_inbox": Action("refresh_inbox", "Refresh"),
     "quit": Action("quit", "Quit"),
+    "open_version_control": Action("open_version_control", "Open version control"),
 }
 
 
@@ -95,6 +97,7 @@ class Keymap:
             config.get_key("predict_selected"): "predict_selected",
             config.get_key("predict_all_unconfirmed"): "predict_all_unconfirmed",
             config.get_key("view_inbox"): "view_inbox",
+            config.get_key("open_version_control"): "open_version_control",
         }
         return cls(bindings=bindings, actions=TRANSACTION_LIST_ACTIONS)
 
@@ -109,6 +112,7 @@ class Keymap:
             config.get_key("import_all_pending"): "import_all_pending",
             config.get_key("refresh_inbox"): "refresh_inbox",
             config.get_key("quit"): "quit",
+            config.get_key("open_version_control"): "open_version_control",
         }
         return cls(bindings=bindings, actions=INBOX_ACTIONS)
 

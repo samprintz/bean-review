@@ -2,14 +2,15 @@
 
 import shlex
 import subprocess
+
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Header, Label, ListItem, ListView, Static
 
-from ..util import create_review_file, parse_file, scan_inbox
 from ..config import Config
 from ..keymap import Keymap
 from ..models import InboxEntry
+from ..util import create_review_file, parse_file, scan_inbox
 from ..widgets import ConfirmFooter
 
 
@@ -166,6 +167,17 @@ class InboxScreen(Screen):
             self.app.call_from_thread(self.notify, "Import complete.")
         self.app.call_from_thread(self._reload)
 
+    def _open_version_control(self) -> None:
+        """Open the version control tool for the beancount ledger directory."""
+        if not self._config.version_control_cmd:
+            self._show_error(
+                "No version control command configured."
+                " Set version_control_cmd in [general] in the config file."
+            )
+            return
+        with self.app.suspend():
+            subprocess.call(self._config.version_control_cmd, shell=True)
+
     def _open_selected(self) -> None:
         """Open the transaction screen for the currently selected inbox entry."""
         list_view = self.query_one("#inbox-list", ListView)
@@ -218,6 +230,10 @@ class InboxScreen(Screen):
             event.stop()
         elif action == "refresh_inbox":
             self._reload()
+            event.prevent_default()
+            event.stop()
+        elif action == "open_version_control":
+            self._open_version_control()
             event.prevent_default()
             event.stop()
         elif action == "quit":

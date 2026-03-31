@@ -137,8 +137,9 @@ class TransactionListScreen(Screen):
         """Update the footer completion status."""
         try:
             footer = self.query_one("#main-footer", Footer)
-            footer.complete = self.review_file.complete_count
-            footer.total = self.review_file.total_count
+            complete = self.review_file.complete_count
+            total = self.review_file.total_count
+            footer.status = f"{complete}/{total} complete"
         except Exception:
             pass
 

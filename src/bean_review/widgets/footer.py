@@ -5,10 +5,11 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from ..keymap import Keymap
+from .keybinding_hints import KeybindingHints
 
 
 class Footer(Widget):
-    """Custom footer with keybindings, state, and completion status."""
+    """Footer with keybinding hints and an optional right-side status slot."""
 
     DEFAULT_CSS = """
     Footer {
@@ -22,27 +23,9 @@ class Footer(Widget):
         height: 1;
     }
 
-    Footer .footer-left {
-        width: 1fr;
-        height: 1;
-    }
-
     Footer .footer-right {
         width: auto;
         height: 1;
-    }
-
-    Footer .footer-key {
-        width: auto;
-        background: $secondary;
-        color: $text;
-        padding: 0 1;
-    }
-
-    Footer .footer-description {
-        width: auto;
-        color: $text-muted;
-        padding: 0 1;
     }
 
     Footer .footer-state {
@@ -61,13 +44,16 @@ class Footer(Widget):
         color: $text-muted;
         padding: 0 1;
     }
+
+    Footer .footer-status.hidden {
+        display: none;
+    }
     """
 
     state: reactive[str | None] = reactive(None)
-    complete: reactive[int] = reactive(0)
-    total: reactive[int] = reactive(0)
+    status: reactive[str | None] = reactive(None)
 
-    # Actions to show in footer (in order)
+    # Default actions to show in footer (in order)
     FOOTER_ACTIONS = [
         "help",
         "edit_category",
@@ -80,49 +66,46 @@ class Footer(Widget):
     def __init__(
         self,
         keymap: Keymap,
+        footer_actions: list[str] | None = None,
         name: str | None = None,
         id: str | None = None,
         classes: str | None = None,
     ) -> None:
         super().__init__(name=name, id=id, classes=classes)
         self._keymap = keymap
+        self._footer_actions = (
+            footer_actions if footer_actions is not None
+            else self.FOOTER_ACTIONS
+        )
 
     def compose(self) -> ComposeResult:
         with Horizontal():
-            with Horizontal(classes="footer-left"):
-                # Build reverse mapping: action -> key
-                action_to_key: dict[str, str] = {}
-                for key, action_name in self._keymap.bindings.items():
-                    if action_name not in action_to_key:
-                        action_to_key[action_name] = key
-
-                for action_name in self.FOOTER_ACTIONS:
-                    if action_name in action_to_key:
-                        key = action_to_key[action_name]
-                        # Format key for display
-                        display_key = self._format_key(key)
-                        desc = self._keymap.actions[action_name].description
-                        yield Static(display_key, classes="footer-key")
-                        yield Static(desc, classes="footer-description")
-
+            yield KeybindingHints(
+                self._keymap,
+                self._footer_actions,
+                id="footer-hints",
+            )
             with Horizontal(classes="footer-right"):
-                state_class = "footer-state hidden" if self.state is None else "footer-state"
-                yield Static(self.state or "", id="footer-state", classes=state_class)
-                yield Static(
-                    f"{self.complete}/{self.total} complete",
-                    id="footer-status",
-                    classes="footer-status",
+                state_class = (
+                    "footer-state hidden"
+                    if self.state is None
+                    else "footer-state"
                 )
-
-    def _format_key(self, key: str) -> str:
-        """Format a key for display in footer."""
-        # Convert internal key names to display format
-        key_map = {
-            "question_mark": "?",
-            "ctrl+d": "C-d",
-            "ctrl+u": "C-u",
-        }
-        return key_map.get(key, key)
+                yield Static(
+                    self.state or "",
+                    id="footer-state",
+                    classes=state_class,
+                )
+                status_class = (
+                    "footer-status hidden"
+                    if self.status is None
+                    else "footer-status"
+                )
+                yield Static(
+                    self.status or "",
+                    id="footer-status",
+                    classes=status_class,
+                )
 
     def watch_state(self, new_state: str | None) -> None:
         """React to state changes."""
@@ -137,27 +120,25 @@ class Footer(Widget):
         except Exception:
             pass
 
-    def watch_complete(self, _: int) -> None:
-        """React to complete count changes."""
-        self._update_status()
-
-    def watch_total(self, _: int) -> None:
-        """React to total count changes."""
-        self._update_status()
-
-    def _update_status(self) -> None:
-        """Update the status display."""
+    def watch_status(self, new_status: str | None) -> None:
+        """React to status text changes."""
         try:
             status_widget = self.query_one("#footer-status", Static)
-            status_widget.update(f"{self.complete}/{self.total} complete")
+            if new_status is None:
+                status_widget.add_class("hidden")
+                status_widget.update("")
+            else:
+                status_widget.remove_class("hidden")
+                status_widget.update(new_status)
         except Exception:
             pass
 
     def update_keymap(self, keymap: Keymap) -> None:
         """Update the footer with a new keymap."""
         self._keymap = keymap
-        self.refresh(recompose=True)
-
-
-# Keep old name for compatibility during transition
-KeybindingsFooter = Footer
+        try:
+            self.query_one(
+                "#footer-hints", KeybindingHints
+            ).update_keymap(keymap)
+        except Exception:
+            pass

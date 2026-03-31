@@ -5,13 +5,13 @@ import subprocess
 
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Header, Label, ListItem, ListView, Static
+from textual.widgets import Header, Label, ListItem, ListView
 
 from ..config import Config
 from ..keymap import Keymap
 from ..models import InboxEntry
 from ..util import create_review_file, parse_file, scan_inbox
-from ..widgets import ConfirmFooter, MessageFooter
+from ..widgets import ConfirmFooter, Footer, HelpFooter, MessageFooter
 
 
 class InboxListItem(ListItem):
@@ -45,14 +45,6 @@ class InboxScreen(Screen):
     .inbox-entry-pending {
         color: $text-muted;
     }
-
-    #inbox-footer {
-        dock: bottom;
-        height: 1;
-        background: $primary;
-        color: $text-muted;
-        padding: 0 1;
-    }
     """
 
     def __init__(self, inbox_dir: str, config: Config) -> None:
@@ -64,10 +56,14 @@ class InboxScreen(Screen):
         self._active_footer: str = "main"
         self._pending_import_entry: InboxEntry | None = None
 
+    FOOTER_ACTIONS = [
+        "help", "select", "import_active", "import_all_pending", "quit",
+    ]
+
     def compose(self) -> ComposeResult:
         yield Header()
         yield ListView(id="inbox-list")
-        yield Static("enter open  B import  g B import all  F5 refresh  q quit", id="inbox-footer")
+        yield Footer(self._keymap, self.FOOTER_ACTIONS, id="main-footer")
 
     async def on_mount(self) -> None:
         await self._reload()
@@ -86,22 +82,59 @@ class InboxScreen(Screen):
         list_view.focus()
 
     def _restore_main_footer(self) -> None:
-        for footer_id in ["confirm-footer", "message-footer"]:
+        for footer_id in ["confirm-footer", "help-footer", "message-footer"]:
             try:
                 self.query_one(f"#{footer_id}").remove()
             except Exception:
                 pass
+        try:
+            self.query_one("#main-footer", Footer)
+        except Exception:
+            self.mount(Footer(self._keymap, self.FOOTER_ACTIONS, id="main-footer"))
         self._active_footer = "main"
         self._pending_import_entry = None
         self.query_one("#inbox-list", ListView).focus()
 
-    def on_confirm_footer_confirmed(self, event: ConfirmFooter.Confirmed) -> None:
+    def _remove_main_footer(self) -> None:
+        try:
+            self.query_one("#main-footer").remove()
+        except Exception:
+            pass
+
+    def _show_confirm(self, message: str, entry: InboxEntry) -> None:
+        self._remove_main_footer()
+        self._active_footer = "confirm"
+        self._pending_import_entry = entry
+        footer = ConfirmFooter(message=message, id="confirm-footer")
+        self.mount(footer)
+        footer.focus()
+
+    def _show_error(self, message: str) -> None:
+        self._remove_main_footer()
+        self._active_footer = "message"
+        self._pending_import_entry = None
+        footer = MessageFooter(message=message, id="message-footer")
+        self.mount(footer)
+        footer.focus()
+
+    def _show_help(self) -> None:
+        self._remove_main_footer()
+        self._active_footer = "help"
+        footer = HelpFooter(self._keymap, id="help-footer")
+        self.mount(footer)
+        footer.focus()
+
+    def on_confirm_footer_confirmed(
+        self, event: ConfirmFooter.Confirmed
+    ) -> None:
         entry = self._pending_import_entry
         self._restore_main_footer()
         if entry is not None:
             self._run_import_worker(entry.import_file)
 
-    def on_confirm_footer_cancelled(self, event: ConfirmFooter.Cancelled) -> None:
+    def on_confirm_footer_cancelled(
+        self, event: ConfirmFooter.Cancelled
+    ) -> None:
         self._restore_main_footer()
 
     def on_message_footer_dismissed(
@@ -109,36 +142,44 @@ class InboxScreen(Screen):
     ) -> None:
         self._restore_main_footer()
 
-    def _show_confirm(self, message: str, entry: InboxEntry) -> None:
-        self._active_footer = "confirm"
-        self._pending_import_entry = entry
-        self._mount_confirm_footer(message)
+    def on_help_footer_closed(self, event: HelpFooter.Closed) -> None:
+        self._restore_main_footer()
 
-    def _show_error(self, message: str) -> None:
-        self._active_footer = "message"
-        self._pending_import_entry = None
-        try:
-            self.query_one("#inbox-footer").remove()
-        except Exception:
-            pass
-        footer = MessageFooter(message=message, id="message-footer")
-        self.mount(footer)
-        footer.focus()
+    def _run_action(self, action: str) -> None:
+        """Execute an action by name."""
+        action_map = {
+            "up": self._cursor_up,
+            "down": self._cursor_down,
+            "select": self._open_selected,
+            "import_active": self._import_active,
+            "import_all_pending": self._import_all_pending,
+            "refresh_inbox": self._refresh_inbox,
+            "open_version_control": self._open_version_control,
+            "quit": self._quit,
+            "help": self._show_help,
+        }
+        handler = action_map.get(action)
+        if handler:
+            handler()
 
-    def _mount_confirm_footer(self, message: str) -> None:
-        try:
-            self.query_one("#inbox-footer").remove()
-        except Exception:
-            pass
-        footer = ConfirmFooter(message=message, id="confirm-footer")
-        self.mount(footer)
-        footer.focus()
+    def _cursor_up(self) -> None:
+        self.query_one("#inbox-list", ListView).action_cursor_up()
+
+    def _cursor_down(self) -> None:
+        self.query_one("#inbox-list", ListView).action_cursor_down()
+
+    def _refresh_inbox(self) -> None:
+        self.run_worker(self._reload(), name="reload")
+
+    def _quit(self) -> None:
+        self.app.exit()
 
     def _import_active(self) -> None:
         """Import the currently focused file."""
         if not self._config.import_cmd:
             self._show_error(
-                "No import command configured. Set import_cmd in [general] in the config file."
+                "No import command configured."
+                " Set import_cmd in [general] in the config file."
             )
             return
         list_view = self.query_one("#inbox-list", ListView)
@@ -155,7 +196,8 @@ class InboxScreen(Screen):
         """Import all pending files by passing the inbox directory."""
         if not self._config.import_all_cmd:
             self._show_error(
-                "No import command configured. Set import_all_cmd in [general] in the config file."
+                "No import command configured."
+                " Set import_all_cmd in [general] in the config file."
             )
             return
         self._run_import_worker(self._inbox_dir)
@@ -223,39 +265,11 @@ class InboxScreen(Screen):
         ))
 
     def on_key(self, event) -> None:
-        if self._active_footer in ("confirm", "message"):
+        if self._active_footer in ("confirm", "help", "message"):
             return
 
         action = self._keymap.resolve(event.key)
-        if action == "up":
-            self.query_one("#inbox-list", ListView).action_cursor_up()
-            event.prevent_default()
-            event.stop()
-        elif action == "down":
-            self.query_one("#inbox-list", ListView).action_cursor_down()
-            event.prevent_default()
-            event.stop()
-        elif action == "select":
-            self._open_selected()
-            event.prevent_default()
-            event.stop()
-        elif action == "import_active":
-            self._import_active()
-            event.prevent_default()
-            event.stop()
-        elif action == "import_all_pending":
-            self._import_all_pending()
-            event.prevent_default()
-            event.stop()
-        elif action == "refresh_inbox":
-            self.run_worker(self._reload(), name="reload")
-            event.prevent_default()
-            event.stop()
-        elif action == "open_version_control":
-            self._open_version_control()
-            event.prevent_default()
-            event.stop()
-        elif action == "quit":
-            self.app.exit()
+        if action:
+            self._run_action(action)
             event.prevent_default()
             event.stop()

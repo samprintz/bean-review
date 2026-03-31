@@ -47,8 +47,8 @@ class TransactionListItem(ListItem):
     def compose(self) -> ComposeResult:
         txn = self.review_txn.directive
 
-        # Header: date "payee" "narration"
-        header_parts = [str(txn.date)]
+        # Header: date flag "payee" "narration"
+        header_parts = [str(txn.date), txn.flag]
         if txn.payee:
             header_parts.append(f'"{txn.payee}"')
         if txn.narration:

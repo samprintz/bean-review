@@ -200,7 +200,12 @@ class InboxScreen(Screen):
             return
         entry = self._entries[idx]
         if not entry.is_reviewable:
-            self.notify("No beancount file for this entry yet.", severity="warning")
+            if self._config.import_cmd:
+                self._show_confirm("No beancount file yet. Import now?", entry)
+            else:
+                self.notify(
+                    "No beancount file for this entry yet.", severity="warning"
+                )
             return
         transactions = parse_file(entry.beancount_file)
         if not transactions:

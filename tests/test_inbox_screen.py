@@ -4,7 +4,7 @@ from pathlib import Path
 from textual.widgets import ListView
 
 from bean_review.__main__ import ReviewerApp
-from bean_review.config import load_config
+from bean_review.config import Config, load_config
 from bean_review.screens.inbox_screen import InboxListItem, InboxScreen
 
 
@@ -70,6 +70,41 @@ async def test_entry_selection_preserved_after_reload(tmp_path: Path) -> None:
         # The item at index 1 must be visually highlighted
         assert list_view.highlighted_child is not None
         assert list_view.highlighted_child.highlighted is True
+
+
+@pytest.mark.asyncio
+async def test_progress_empty_beancount_file(tmp_path: Path) -> None:
+    """A reviewable entry with no transactions shows 0/0 complete, not pending."""
+    csv = tmp_path / "empty.csv"
+    beancount = tmp_path / "empty.csv.beancount"
+    csv.touch()
+    beancount.touch()  # exists but has no transactions
+
+    ledger = tmp_path / "ledger.beancount"
+    ledger.touch()
+    config = Config(
+        ledger_file=str(ledger),
+        archive_cmd="echo",
+    )
+    app = ReviewerApp(config, inbox_dir=str(tmp_path))
+
+    async with app.run_test() as pilot:
+        screen = pilot.app.screen
+        assert isinstance(screen, InboxScreen)
+
+        items = list(screen.query(InboxListItem))
+        assert len(items) == 1
+        item = items[0]
+
+        assert item.entry.is_reviewable is True
+        assert item._progress_counts == (0, 0)
+
+        # append-and-archive confirm message should NOT warn about incomplete
+        screen._append_and_archive_active()
+        await pilot.pause()
+        from bean_review.widgets import ConfirmFooter
+        confirm = screen.query_one("#confirm-footer", ConfirmFooter)
+        assert "incomplete" not in confirm.message.lower()
 
 
 @pytest.mark.asyncio

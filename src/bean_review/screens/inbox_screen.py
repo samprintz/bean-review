@@ -4,6 +4,7 @@ import shlex
 import subprocess
 
 from textual.app import ComposeResult
+from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Header, Label, ListItem, ListView
 
@@ -17,13 +18,29 @@ from ..widgets import ConfirmFooter, Footer, HelpFooter, MessageFooter
 class InboxListItem(ListItem):
     """A list item representing one inbox entry (import file + optional beancount file)."""
 
-    def __init__(self, entry: InboxEntry) -> None:
+    def __init__(
+        self,
+        entry: InboxEntry,
+        progress_counts: tuple[int, int] | None = None,
+    ) -> None:
         super().__init__()
         self.entry = entry
+        self._progress_counts = progress_counts
 
     def compose(self) -> ComposeResult:
-        classes = "inbox-entry-reviewable" if self.entry.is_reviewable else "inbox-entry-pending"
-        yield Label(self.entry.display_name, classes=classes)
+        name_class = (
+            "inbox-entry-reviewable"
+            if self.entry.is_reviewable
+            else "inbox-entry-pending"
+        )
+        if self._progress_counts is not None:
+            complete, total = self._progress_counts
+            progress_text = f"{complete}/{total} complete"
+        else:
+            progress_text = "pending"
+        with Horizontal():
+            yield Label(self.entry.display_name, classes=name_class)
+            yield Label(progress_text, classes="inbox-entry-progress")
 
 
 class InboxScreen(Screen):
@@ -42,8 +59,24 @@ class InboxScreen(Screen):
         height: 1;
     }
 
+    InboxListItem Horizontal {
+        height: 1;
+        width: 100%;
+    }
+
+    InboxListItem .inbox-entry-reviewable,
+    InboxListItem .inbox-entry-pending {
+        width: 1fr;
+    }
+
     .inbox-entry-pending {
         color: $text-muted;
+    }
+
+    .inbox-entry-progress {
+        width: auto;
+        color: $text-muted;
+        padding: 0 1;
     }
     """
 
@@ -53,6 +86,7 @@ class InboxScreen(Screen):
         self._config = config
         self._keymap = Keymap.for_inbox(config)
         self._entries: list[InboxEntry] = []
+        self._progress_cache: dict[str, tuple[int, int]] = {}
         self._active_footer: str = "main"
         self._pending_import_entry: InboxEntry | None = None
         self._pending_confirm_action: str | None = None
@@ -78,10 +112,21 @@ class InboxScreen(Screen):
         list_view = self.query_one("#inbox-list", ListView)
         previous_index = list_view.index or 0
         self._entries = scan_inbox(self._inbox_dir)
+        self._progress_cache = {}
+        items = []
+        for entry in self._entries:
+            counts: tuple[int, int] | None = None
+            if entry.is_reviewable:
+                transactions = parse_file(entry.beancount_file)
+                if transactions:
+                    rf = create_review_file(transactions, entry.beancount_file)
+                    counts = (rf.complete_count, rf.total_count)
+                else:
+                    counts = (0, 0)
+                self._progress_cache[entry.beancount_file] = counts
+            items.append(InboxListItem(entry, progress_counts=counts))
         await list_view.clear()
-        await list_view.extend(
-            [InboxListItem(entry) for entry in self._entries]
-        )
+        await list_view.extend(items)
         if self._entries:
             list_view.index = min(previous_index, len(self._entries) - 1)
         list_view.focus()
@@ -196,11 +241,20 @@ class InboxScreen(Screen):
                 "No beancount file to append from."
             )
             return
-        self._show_confirm(
-            "Append to ledger and archive? Cannot be undone.",
-            entry,
-            "append_and_archive",
-        )
+        counts = self._progress_cache.get(entry.beancount_file)
+        if counts is not None:
+            complete, total = counts
+            incomplete = total - complete
+            if incomplete > 0:
+                message = (
+                    f"{incomplete} incomplete transaction(s)."
+                    " Append and archive anyway? Cannot be undone."
+                )
+            else:
+                message = "Append to ledger and archive? Cannot be undone."
+        else:
+            message = "Append to ledger and archive? Cannot be undone."
+        self._show_confirm(message, entry, "append_and_archive")
 
     def _run_action(self, action: str) -> None:
         """Execute an action by name."""

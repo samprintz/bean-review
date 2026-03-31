@@ -731,10 +731,15 @@ class TransactionListScreen(Screen):
                 severity="error",
             )
             return
-        self._show_confirm(
-            "Append to ledger and archive? Cannot be undone.",
-            "append_and_archive",
-        )
+        incomplete = self.review_file.incomplete_count
+        if incomplete > 0:
+            message = (
+                f"{incomplete} incomplete transaction(s)."
+                " Append and archive anyway? Cannot be undone."
+            )
+        else:
+            message = "Append to ledger and archive? Cannot be undone."
+        self._show_confirm(message, "append_and_archive")
 
     def _run_archive_worker(self, target: str, cmd_str: str) -> None:
         self.run_worker(
@@ -754,7 +759,14 @@ class TransactionListScreen(Screen):
                 severity="error",
             )
         elif self._back_to_inbox:
-            self.app.call_from_thread(self.app.pop_screen)
+            def _reload_and_pop() -> None:
+                from .inbox_screen import InboxScreen
+                for screen in self.app.screen_stack:
+                    if isinstance(screen, InboxScreen):
+                        screen._refresh_inbox()
+                        break
+                self.app.pop_screen()
+            self.app.call_from_thread(_reload_and_pop)
 
     def _open_version_control(self) -> None:
         """Open the version control tool for the beancount ledger directory."""

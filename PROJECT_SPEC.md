@@ -43,11 +43,25 @@ alongside their `.beancount` counterparts produced by `bean-stage`.
   - the confirm footer shows a hint to set `import_cmd` in the config file.
 - `g B` imports all pending files by running the import command
   with the inbox directory as argument.
+  A confirm dialog asks before importing.
 - After import the list is refreshed automatically.
-- `F5` refreshes the inbox list.
 - Import commands are configured in the `[general]` section of the config file:
   - `import_cmd`: used for single-file import (`B`) and as fallback for `g B`.
-  - `import_all_cmd`: used for bulk import (`g B`)
+  - `import_all_cmd`: used for bulk import (`g B`).
+    There is no default; the keys are inert until a command is configured.
+- `A` archives the focused file by running the configured archive command
+  with the file path as argument.
+  A confirm dialog asks before archiving.
+  If no archive command is configured,
+  the message footer shows a hint to set `archive_cmd` in the config file.
+- `g A` archives all files by running the archive command
+  with the inbox directory as argument.
+  A confirm dialog asks before archiving.
+- After archive the list is refreshed automatically.
+- Archive commands are configured in the `[general]` section of the config file:
+  - `archive_cmd`: used for single-file archive (`A`) and as fallback for `g A`.
+  - `archive_all_cmd`: used for bulk archive (`g A`).
+- `F5` refreshes the inbox list.
   There is no default; the keys are inert until a command is configured.
 - `V` opens a version control tool for the beancount ledger directory.
   - Configured via `version_control_cmd` in the `[general]` section of the config file.

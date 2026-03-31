@@ -35,6 +35,8 @@ DEFAULT_KEYBINDINGS = {
     "help": "question_mark",
     "import_active": "B",
     "import_all_pending": "g B",
+    "archive_active": "A",
+    "archive_all": "g A",
     "refresh_inbox": "f5",
     "view_inbox": "h",
     "open_version_control": "V",
@@ -49,6 +51,8 @@ class Config:
     ai_port: int = 8080
     import_cmd: str | None = None
     import_all_cmd: str | None = None
+    archive_cmd: str | None = None
+    archive_all_cmd: str | None = None
     version_control_cmd: str | None = None
 
     def get_key(self, action: str) -> str:
@@ -82,6 +86,8 @@ def load_config(
     Ledger file resolution priority: CLI > config file > BEANCOUNT_FILE env var.
     Import commands: import_cmd for single-file import;
     import_all_cmd for bulk import (falls back to import_cmd if not set).
+    Archive commands: archive_cmd for single-file archive;
+    archive_all_cmd for bulk archive (falls back to archive_cmd if not set).
     """
     if config_path is None:
         config_path = DEFAULT_CONFIG_PATH
@@ -93,6 +99,8 @@ def load_config(
     config_file_ledger: str | None = None
     config_file_import_cmd: str | None = None
     config_file_import_all_cmd: str | None = None
+    config_file_archive_cmd: str | None = None
+    config_file_archive_all_cmd: str | None = None
     config_file_version_control_cmd: str | None = None
 
     if config_path.exists():
@@ -103,6 +111,9 @@ def load_config(
             config_file_ledger = parser["general"].get("ledger_file")
             config_file_import_cmd = parser["general"].get("import_cmd")
             config_file_import_all_cmd = parser["general"].get("import_all_cmd")
+            config_file_archive_cmd = parser["general"].get("archive_cmd")
+            config_file_archive_all_cmd = \
+                parser["general"].get("archive_all_cmd")
             config_file_version_control_cmd = \
                 parser["general"].get("version_control_cmd")
 
@@ -124,6 +135,9 @@ def load_config(
     config.import_cmd = config_file_import_cmd or None
     config.import_all_cmd = config_file_import_all_cmd \
             or config_file_import_cmd or None
+    config.archive_cmd = config_file_archive_cmd or None
+    config.archive_all_cmd = config_file_archive_all_cmd \
+            or config_file_archive_cmd or None
     if config_file_version_control_cmd:
         config.version_control_cmd = config_file_version_control_cmd
 

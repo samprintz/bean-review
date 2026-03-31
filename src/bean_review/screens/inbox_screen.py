@@ -55,9 +55,14 @@ class InboxScreen(Screen):
         self._entries: list[InboxEntry] = []
         self._active_footer: str = "main"
         self._pending_import_entry: InboxEntry | None = None
+        self._pending_confirm_action: str | None = None
+        self._pending_archive_target: str | None = None
 
     FOOTER_ACTIONS = [
-        "help", "select", "import_active", "import_all_pending", "quit",
+        "help", "select",
+        "import_active", "import_all_pending",
+        "archive_active", "archive_all",
+        "quit",
     ]
 
     def compose(self) -> ComposeResult:
@@ -93,6 +98,8 @@ class InboxScreen(Screen):
             self.mount(Footer(self._keymap, self.FOOTER_ACTIONS, id="main-footer"))
         self._active_footer = "main"
         self._pending_import_entry = None
+        self._pending_confirm_action = None
+        self._pending_archive_target = None
         self.query_one("#inbox-list", ListView).focus()
 
     def _remove_main_footer(self) -> None:
@@ -101,10 +108,22 @@ class InboxScreen(Screen):
         except Exception:
             pass
 
-    def _show_confirm(self, message: str, entry: InboxEntry) -> None:
+    def _show_confirm(
+        self, message: str, entry: InboxEntry, action: str
+    ) -> None:
         self._remove_main_footer()
         self._active_footer = "confirm"
         self._pending_import_entry = entry
+        self._pending_confirm_action = action
+        footer = ConfirmFooter(message=message, id="confirm-footer")
+        self.mount(footer)
+        footer.focus()
+
+    def _show_confirm_bulk(self, message: str, action: str) -> None:
+        self._remove_main_footer()
+        self._active_footer = "confirm"
+        self._pending_confirm_action = action
+        self._pending_archive_target = self._inbox_dir
         footer = ConfirmFooter(message=message, id="confirm-footer")
         self.mount(footer)
         footer.focus()
@@ -113,6 +132,8 @@ class InboxScreen(Screen):
         self._remove_main_footer()
         self._active_footer = "message"
         self._pending_import_entry = None
+        self._pending_confirm_action = None
+        self._pending_archive_target = None
         footer = MessageFooter(message=message, id="message-footer")
         self.mount(footer)
         footer.focus()
@@ -128,9 +149,25 @@ class InboxScreen(Screen):
         self, event: ConfirmFooter.Confirmed
     ) -> None:
         entry = self._pending_import_entry
+        action = self._pending_confirm_action
+        archive_target = self._pending_archive_target
         self._restore_main_footer()
-        if entry is not None:
-            self._run_import_worker(entry.import_file)
+        if action == "import_all" and archive_target is not None:
+            self._run_import_worker(
+                archive_target, self._config.import_all_cmd
+            )
+        elif action == "archive_all" and archive_target is not None:
+            self._run_archive_worker(
+                archive_target, self._config.archive_all_cmd
+            )
+        elif action == "archive" and entry is not None:
+            self._run_archive_worker(
+                entry.import_file, self._config.archive_cmd
+            )
+        elif entry is not None:
+            self._run_import_worker(
+                entry.import_file, self._config.import_cmd
+            )
 
     def on_confirm_footer_cancelled(
         self, event: ConfirmFooter.Cancelled
@@ -153,6 +190,8 @@ class InboxScreen(Screen):
             "select": self._open_selected,
             "import_active": self._import_active,
             "import_all_pending": self._import_all_pending,
+            "archive_active": self._archive_active,
+            "archive_all": self._archive_all,
             "refresh_inbox": self._refresh_inbox,
             "open_version_control": self._open_version_control,
             "quit": self._quit,
@@ -188,9 +227,13 @@ class InboxScreen(Screen):
             return
         entry = self._entries[idx]
         if entry.is_reviewable:
-            self._show_confirm("Already imported. Overwrite?", entry)
+            self._show_confirm(
+                "Already imported. Overwrite?", entry, "import"
+            )
             return
-        self._run_import_worker(entry.import_file)
+        self._run_import_worker(
+            entry.import_file, self._config.import_cmd
+        )
 
     def _import_all_pending(self) -> None:
         """Import all pending files by passing the inbox directory."""
@@ -200,18 +243,18 @@ class InboxScreen(Screen):
                 " Set import_all_cmd in [general] in the config file."
             )
             return
-        self._run_import_worker(self._inbox_dir)
+        self._show_confirm_bulk("Import all pending files?", "import_all")
 
-    def _run_import_worker(self, target: str) -> None:
+    def _run_import_worker(self, target: str, cmd_str: str) -> None:
         self.run_worker(
-            lambda: self._run_import(target),
+            lambda: self._run_import(target, cmd_str),
             thread=True,
             name="import",
         )
 
-    def _run_import(self, target: str) -> None:
+    def _run_import(self, target: str, cmd_str: str) -> None:
         """Run the import command against target; reload on completion."""
-        cmd = shlex.split(self._config.import_all_cmd) + [target]
+        cmd = shlex.split(cmd_str) + [target]
         result = subprocess.run(cmd)
         if result.returncode != 0:
             self.app.call_from_thread(
@@ -221,6 +264,52 @@ class InboxScreen(Screen):
             )
         else:
             self.app.call_from_thread(self.notify, "Import complete.")
+        self.app.call_from_thread(self._reload)
+
+    def _archive_active(self) -> None:
+        """Archive the currently focused file."""
+        if not self._config.archive_cmd:
+            self._show_error(
+                "No archive command configured."
+                " Set archive_cmd in [general] in the config file."
+            )
+            return
+        list_view = self.query_one("#inbox-list", ListView)
+        idx = list_view.index
+        if idx is None or idx >= len(self._entries):
+            return
+        entry = self._entries[idx]
+        self._show_confirm(
+            "Archive this file?", entry, "archive"
+        )
+
+    def _archive_all(self) -> None:
+        """Archive all files by passing the inbox directory."""
+        if not self._config.archive_all_cmd:
+            self._show_error(
+                "No archive command configured."
+                " Set archive_all_cmd in [general] in the config file."
+            )
+            return
+        self._show_confirm_bulk("Archive all files?", "archive_all")
+
+    def _run_archive_worker(self, target: str, cmd_str: str) -> None:
+        self.run_worker(
+            lambda: self._run_archive(target, cmd_str),
+            thread=True,
+            name="archive",
+        )
+
+    def _run_archive(self, target: str, cmd_str: str) -> None:
+        """Run the archive command against target; reload on completion."""
+        cmd = shlex.split(cmd_str) + [target]
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            self.app.call_from_thread(
+                self.notify,
+                f"Archive failed (exit {result.returncode}).",
+                severity="error",
+            )
         self.app.call_from_thread(self._reload)
 
     def _open_version_control(self) -> None:
@@ -243,7 +332,9 @@ class InboxScreen(Screen):
         entry = self._entries[idx]
         if not entry.is_reviewable:
             if self._config.import_cmd:
-                self._show_confirm("No beancount file yet. Import now?", entry)
+                self._show_confirm(
+                    "No beancount file yet. Import now?", entry, "import"
+                )
             else:
                 self.notify(
                     "No beancount file for this entry yet.", severity="warning"

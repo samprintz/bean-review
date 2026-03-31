@@ -69,18 +69,20 @@ class InboxScreen(Screen):
         yield ListView(id="inbox-list")
         yield Static("enter open  B import  g B import all  F5 refresh  q quit", id="inbox-footer")
 
-    def on_mount(self) -> None:
-        self._reload()
+    async def on_mount(self) -> None:
+        await self._reload()
 
-    def _reload(self) -> None:
+    async def _reload(self) -> None:
         """Reload inbox entries from disk and repopulate the list."""
-        self._entries = scan_inbox(self._inbox_dir)
         list_view = self.query_one("#inbox-list", ListView)
-        list_view.clear()
-        for entry in self._entries:
-            list_view.append(InboxListItem(entry))
+        previous_index = list_view.index or 0
+        self._entries = scan_inbox(self._inbox_dir)
+        await list_view.clear()
+        await list_view.extend(
+            [InboxListItem(entry) for entry in self._entries]
+        )
         if self._entries:
-            list_view.index = 0
+            list_view.index = min(previous_index, len(self._entries) - 1)
         list_view.focus()
 
     def _restore_main_footer(self) -> None:
@@ -229,7 +231,7 @@ class InboxScreen(Screen):
             event.prevent_default()
             event.stop()
         elif action == "refresh_inbox":
-            self._reload()
+            self.run_worker(self._reload(), name="reload")
             event.prevent_default()
             event.stop()
         elif action == "open_version_control":

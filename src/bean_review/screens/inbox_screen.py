@@ -1,5 +1,6 @@
 """Inbox screen: lists import files in an inbox directory."""
 
+import os
 import shlex
 import subprocess
 from collections.abc import Callable
@@ -302,14 +303,24 @@ class InboxScreen(Screen):
             entry.import_file, self._config.import_cmd
         )
 
-    def _run_import_worker(self, target: str, cmd_str: str) -> None:
+    def _run_import_worker(
+        self,
+        target: str,
+        cmd_str: str,
+        on_import_success: Callable[[], None] | None = None,
+    ) -> None:
         self.run_worker(
-            lambda: self._run_import(target, cmd_str),
+            lambda: self._run_import(target, cmd_str, on_import_success),
             thread=True,
             name="import",
         )
 
-    def _run_import(self, target: str, cmd_str: str) -> None:
+    def _run_import(
+        self,
+        target: str,
+        cmd_str: str,
+        on_import_success: Callable[[], None] | None = None,
+    ) -> None:
         """Run the import command against target; reload on completion."""
         cmd = shlex.split(cmd_str) + [target]
         result = subprocess.run(cmd)
@@ -319,9 +330,13 @@ class InboxScreen(Screen):
                 f"Import failed (exit {result.returncode}).",
                 severity="error",
             )
+            self.app.call_from_thread(self._reload)
         else:
             self.app.call_from_thread(self.notify, "Import complete.")
-        self.app.call_from_thread(self._reload)
+            if on_import_success is not None:
+                self.app.call_from_thread(on_import_success)
+            else:
+                self.app.call_from_thread(self._reload)
 
     def _archive_active(self) -> None:
         """Archive the currently focused file."""
@@ -386,10 +401,32 @@ class InboxScreen(Screen):
         entry = self._entries[idx]
         if not entry.is_reviewable:
             if self._config.import_cmd:
+                def on_import_done() -> None:
+                    self._reload()
+                    beancount_path = entry.import_file + ".beancount"
+                    if not os.path.isfile(beancount_path):
+                        return
+                    transactions = parse_file(beancount_path)
+                    if not transactions:
+                        return
+                    review_file = create_review_file(
+                        transactions, beancount_path
+                    )
+                    from .transaction_list_screen import TransactionListScreen
+                    self.app.push_screen(TransactionListScreen(
+                        review_file,
+                        self._config,
+                        source_file=beancount_path,
+                        inbox_import_file=entry.import_file,
+                        back_to_inbox=True,
+                    ))
+
                 def on_success() -> None:
                     self._restore_main_footer()
                     self._run_import_worker(
-                        entry.import_file, self._config.import_cmd
+                        entry.import_file,
+                        self._config.import_cmd,
+                        on_import_success=on_import_done,
                     )
 
                 self._show_confirm(

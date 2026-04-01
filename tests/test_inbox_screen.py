@@ -6,6 +6,7 @@ from textual.widgets import ListView
 from bean_review.__main__ import ReviewerApp
 from bean_review.config import Config, load_config
 from bean_review.screens.inbox_screen import InboxListItem, InboxScreen
+from bean_review.screens.transaction_list_screen import TransactionListScreen
 
 
 INBOX_FILES = [
@@ -162,3 +163,55 @@ async def test_refresh_inbox(tmp_path: Path) -> None:
         display_names = [item.entry.display_name for item in items_after]
         assert "new-import.csv" in display_names
         assert len(items_after) == 5
+
+
+BEANCOUNT_CONTENT = """\
+2024-02-01 * "Grocery Store" "Weekly groceries"
+  Assets:Checking    -45.99 EUR
+  Expenses:Food       45.99 EUR
+"""
+
+
+@pytest.mark.asyncio
+async def test_open_pending_entry_switches_to_transaction_list(
+    tmp_path: Path,
+) -> None:
+    """Confirming import on a pending entry must switch to TransactionListScreen."""
+    csv = tmp_path / "bank.csv"
+    csv.touch()
+    beancount = tmp_path / "bank.csv.beancount"
+
+    # Import command writes minimal beancount content to <input>.beancount
+    beancount_content = BEANCOUNT_CONTENT.replace('"', '\\"')
+    import_cmd = (
+        f'sh -c \'printf "{beancount_content}" > "$1.beancount"\' --'
+    )
+    config = Config(import_cmd=import_cmd)
+    app = ReviewerApp(config, inbox_dir=str(tmp_path))
+
+    async with app.run_test() as pilot:
+        screen = pilot.app.screen
+        assert isinstance(screen, InboxScreen)
+
+        # The entry is pending (no beancount file yet)
+        items = list(screen.query(InboxListItem))
+        assert len(items) == 1
+        assert not items[0].entry.is_reviewable
+
+        # Press Enter: shows confirm footer
+        await pilot.press("enter")
+        await pilot.pause()
+
+        from bean_review.widgets import ConfirmFooter
+        confirm = screen.query_one("#confirm-footer", ConfirmFooter)
+        assert "import" in confirm.message.lower()
+
+        # Confirm: triggers import worker
+        await pilot.press("y")
+        # Wait for the import worker thread to finish
+        await pilot.pause()
+        await pilot.pause()
+        await pilot.pause()
+
+        assert beancount.exists()
+        assert isinstance(pilot.app.screen, TransactionListScreen)

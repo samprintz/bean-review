@@ -1,5 +1,6 @@
+from collections.abc import Callable
+
 from textual.app import ComposeResult
-from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
@@ -42,25 +43,20 @@ class ConfirmFooter(Widget):
 
     message: reactive[str] = reactive("")
 
-    class Confirmed(Message):
-        """Message sent when user confirms."""
-
-        pass
-
-    class Cancelled(Message):
-        """Message sent when user cancels."""
-
-        pass
-
     def __init__(
         self,
         message: str = "",
+        *,
+        on_success: Callable[[], None],
+        on_reject: Callable[[], None],
         name: str | None = None,
         id: str | None = None,
         classes: str | None = None,
     ) -> None:
         super().__init__(name=name, id=id, classes=classes)
         self.message = message
+        self._on_success = on_success
+        self._on_reject = on_reject
 
     def compose(self) -> ComposeResult:
         yield Static(self.message, classes="confirm-message")
@@ -80,10 +76,10 @@ class ConfirmFooter(Widget):
     def on_key(self, event) -> None:
         """Handle key events."""
         if event.key == "y":
-            self.post_message(self.Confirmed())
+            self._on_success()
             event.prevent_default()
             event.stop()
         elif event.key == "n" or event.key == "escape":
-            self.post_message(self.Cancelled())
+            self._on_reject()
             event.prevent_default()
             event.stop()

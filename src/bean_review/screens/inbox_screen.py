@@ -1,8 +1,8 @@
 """Inbox screen: lists import files in an inbox directory."""
 
-import os
 import shlex
 import subprocess
+from collections.abc import Callable
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal
@@ -89,8 +89,6 @@ class InboxScreen(Screen):
         self._entries: list[InboxEntry] = []
         self._progress_cache: dict[str, tuple[int, int]] = {}
         self._active_footer: str = "main"
-        self._pending_import_entry: InboxEntry | None = None
-        self._pending_confirm_action: str | None = None
 
     FOOTER_ACTIONS = [
         "help", "select",
@@ -143,8 +141,6 @@ class InboxScreen(Screen):
         except Exception:
             self.mount(Footer(self._keymap, self.FOOTER_ACTIONS, id="main-footer"))
         self._active_footer = "main"
-        self._pending_import_entry = None
-        self._pending_confirm_action = None
         self.query_one("#inbox-list", ListView).focus()
 
     def _remove_main_footer(self) -> None:
@@ -154,21 +150,27 @@ class InboxScreen(Screen):
             pass
 
     def _show_confirm(
-        self, message: str, entry: InboxEntry, action: str
+        self,
+        message: str,
+        on_success: Callable[[], None],
+        on_reject: Callable[[], None] | None = None,
     ) -> None:
+        if on_reject is None:
+            on_reject = self._restore_main_footer
         self._remove_main_footer()
         self._active_footer = "confirm"
-        self._pending_import_entry = entry
-        self._pending_confirm_action = action
-        footer = ConfirmFooter(message=message, id="confirm-footer")
+        footer = ConfirmFooter(
+            message=message,
+            on_success=on_success,
+            on_reject=on_reject,
+            id="confirm-footer",
+        )
         self.mount(footer)
         footer.focus()
 
     def _show_error(self, message: str) -> None:
         self._remove_main_footer()
         self._active_footer = "message"
-        self._pending_import_entry = None
-        self._pending_confirm_action = None
         footer = MessageFooter(message=message, id="message-footer")
         self.mount(footer)
         footer.focus()
@@ -179,38 +181,6 @@ class InboxScreen(Screen):
         footer = HelpFooter(self._keymap, id="help-footer")
         self.mount(footer)
         footer.focus()
-
-    def on_confirm_footer_confirmed(
-        self, event: ConfirmFooter.Confirmed
-    ) -> None:
-        entry = self._pending_import_entry
-        action = self._pending_confirm_action
-        self._restore_main_footer()
-        if action == "archive" and entry is not None:
-            self._run_archive_worker(
-                entry.import_file, self._config.archive_cmd
-            )
-        elif action == "append_and_archive" and entry is not None:
-            transactions = parse_file(entry.beancount_file)
-            if transactions:
-                review_file = create_review_file(
-                    transactions, entry.beancount_file
-                )
-                self.app.append_to_ledger(review_file)
-            self._run_archive_worker(
-                entry.import_file,
-                self._config.archive_cmd,
-                beancount_file=entry.beancount_file,
-            )
-        elif entry is not None:
-            self._run_import_worker(
-                entry.import_file, self._config.import_cmd
-            )
-
-    def on_confirm_footer_cancelled(
-        self, event: ConfirmFooter.Cancelled
-    ) -> None:
-        self._restore_main_footer()
 
     def on_message_footer_dismissed(
         self, event: MessageFooter.Dismissed
@@ -257,7 +227,22 @@ class InboxScreen(Screen):
                 message = "Append to ledger and archive? Cannot be undone."
         else:
             message = "Append to ledger and archive? Cannot be undone."
-        self._show_confirm(message, entry, "append_and_archive")
+
+        def on_success() -> None:
+            self._restore_main_footer()
+            transactions = parse_file(entry.beancount_file)
+            if transactions:
+                review_file = create_review_file(
+                    transactions, entry.beancount_file
+                )
+                self.app.append_to_ledger(review_file)
+            self._run_archive_worker(
+                entry.import_file,
+                self._config.archive_cmd,
+                beancount_file=entry.beancount_file,
+            )
+
+        self._show_confirm(message, on_success=on_success)
 
     def _run_action(self, action: str) -> None:
         """Execute an action by name."""
@@ -303,8 +288,14 @@ class InboxScreen(Screen):
             return
         entry = self._entries[idx]
         if entry.is_reviewable:
+            def on_success() -> None:
+                self._restore_main_footer()
+                self._run_import_worker(
+                    entry.import_file, self._config.import_cmd
+                )
+
             self._show_confirm(
-                "Already imported. Overwrite?", entry, "import"
+                "Already imported. Overwrite?", on_success=on_success
             )
             return
         self._run_import_worker(
@@ -345,9 +336,14 @@ class InboxScreen(Screen):
         if idx is None or idx >= len(self._entries):
             return
         entry = self._entries[idx]
-        self._show_confirm(
-            "Archive this file?", entry, "archive"
-        )
+
+        def on_success() -> None:
+            self._restore_main_footer()
+            self._run_archive_worker(
+                entry.import_file, self._config.archive_cmd
+            )
+
+        self._show_confirm("Archive this file?", on_success=on_success)
 
     def _run_archive_worker(
         self,
@@ -390,8 +386,15 @@ class InboxScreen(Screen):
         entry = self._entries[idx]
         if not entry.is_reviewable:
             if self._config.import_cmd:
+                def on_success() -> None:
+                    self._restore_main_footer()
+                    self._run_import_worker(
+                        entry.import_file, self._config.import_cmd
+                    )
+
                 self._show_confirm(
-                    "No beancount file yet. Import now?", entry, "import"
+                    "No beancount file yet. Import now?",
+                    on_success=on_success,
                 )
             else:
                 self.notify(

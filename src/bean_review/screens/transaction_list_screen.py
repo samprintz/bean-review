@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+from collections.abc import Callable
 
 from beancount.core.data import Transaction
 from beancount.parser import parser, printer
@@ -125,7 +126,6 @@ class TransactionListScreen(Screen):
         self.keymap = Keymap.for_transaction_list(config)
         self._filter_incomplete = False
         self._active_footer: str | None = None  # "main", "confirm", "category", "help", "edit"
-        self._confirm_action: str | None = None
         self._accounts: list[str] = []
         if config.ledger_file:
             self._accounts = load_accounts_from_ledger(config.ledger_file)
@@ -177,7 +177,6 @@ class TransactionListScreen(Screen):
             self._update_footer_state()
 
         self._active_footer = "main"
-        self._confirm_action = None
         list_view = self.query_one("#transaction-list", ListView)
         list_view.focus()
 
@@ -512,28 +511,6 @@ class TransactionListScreen(Screen):
         """Handle category selection cancellation."""
         self._restore_main_footer()
 
-    def on_confirm_footer_confirmed(self, event: ConfirmFooter.Confirmed) -> None:
-        """Handle confirmation from ConfirmFooter."""
-        action = self._confirm_action
-        self._restore_main_footer()
-        if action == "save":
-            self.app.save(self.review_file, self.source_file)
-        elif action == "append_to_ledger":
-            self.app.append_to_ledger(self.review_file)
-        elif action == "append_and_archive":
-            self.app.append_to_ledger(self.review_file)
-            self._run_archive_worker(
-                self._inbox_import_file,
-                self.app.config.archive_cmd,
-                beancount_file=self.source_file,
-            )
-        elif action == "quit":
-            self.app.exit()
-
-    def on_confirm_footer_cancelled(self, event: ConfirmFooter.Cancelled) -> None:
-        """Handle confirmation cancellation."""
-        self._restore_main_footer()
-
     def on_help_footer_closed(self, event: HelpFooter.Closed) -> None:
         """Handle help footer closed."""
         self._restore_main_footer()
@@ -697,7 +674,12 @@ class TransactionListScreen(Screen):
         if not self.source_file:
             self.notify("Cannot write: source is not a regular file", severity="error")
             return
-        self._show_confirm("Save?", "save")
+
+        def on_success() -> None:
+            self._restore_main_footer()
+            self.app.save(self.review_file, self.source_file)
+
+        self._show_confirm("Save?", on_success=on_success)
 
     def _append_to_ledger(self) -> None:
         """Show append-to-ledger confirmation footer."""
@@ -708,7 +690,12 @@ class TransactionListScreen(Screen):
                 severity="error",
             )
             return
-        self._show_confirm("Append to ledger?", "append_to_ledger")
+
+        def on_success() -> None:
+            self._restore_main_footer()
+            self.app.append_to_ledger(self.review_file)
+
+        self._show_confirm("Append to ledger?", on_success=on_success)
 
     def _append_and_archive(self) -> None:
         """Show confirm footer for append-to-ledger + archive."""
@@ -740,7 +727,17 @@ class TransactionListScreen(Screen):
             )
         else:
             message = "Append to ledger and archive? Cannot be undone."
-        self._show_confirm(message, "append_and_archive")
+
+        def on_success() -> None:
+            self._restore_main_footer()
+            self.app.append_to_ledger(self.review_file)
+            self._run_archive_worker(
+                self._inbox_import_file,
+                self.app.config.archive_cmd,
+                beancount_file=self.source_file,
+            )
+
+        self._show_confirm(message, on_success=on_success)
 
     def _run_archive_worker(
         self,
@@ -790,10 +787,22 @@ class TransactionListScreen(Screen):
 
     def _quit_app(self) -> None:
         """Show quit confirmation footer."""
-        self._show_confirm("Quit?", "quit")
 
-    def _show_confirm(self, message: str, action: str) -> None:
+        def on_success() -> None:
+            self._restore_main_footer()
+            self.app.exit()
+
+        self._show_confirm("Quit?", on_success=on_success)
+
+    def _show_confirm(
+        self,
+        message: str,
+        on_success: Callable[[], None],
+        on_reject: Callable[[], None] | None = None,
+    ) -> None:
         """Show confirmation footer."""
+        if on_reject is None:
+            on_reject = self._restore_main_footer
         # Remove main footer and mount confirm footer
         try:
             self.query_one("#main-footer").remove()
@@ -801,8 +810,12 @@ class TransactionListScreen(Screen):
             pass
 
         self._active_footer = "confirm"
-        self._confirm_action = action
-        footer = ConfirmFooter(message=message, id="confirm-footer")
+        footer = ConfirmFooter(
+            message=message,
+            on_success=on_success,
+            on_reject=on_reject,
+            id="confirm-footer",
+        )
         self.mount(footer)
         footer.focus()
 
@@ -927,7 +940,6 @@ class TransactionListScreen(Screen):
             pass
 
         self._active_footer = "message"
-        self._confirm_action = None
         footer = MessageFooter(message=message, id="message-footer")
         self.mount(footer)
         footer.focus()

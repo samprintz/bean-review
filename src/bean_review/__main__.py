@@ -30,7 +30,7 @@ plain_light_theme = Theme(
 
 
 class ReviewerApp(App):
-    TITLE = "Beancount Reviewer"
+    TITLE = "bean-review"
 
     def __init__(
         self,

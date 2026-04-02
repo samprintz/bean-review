@@ -533,7 +533,7 @@ class TransactionListScreen(Screen):
             event.prevent_default()
             event.stop()
         elif self._back_to_inbox and event.key == "escape":
-            self.app.pop_screen()
+            self._pop_to_inbox()
             event.prevent_default()
             event.stop()
         elif not self.keymap.has_pending():
@@ -783,7 +783,16 @@ class TransactionListScreen(Screen):
     def _view_inbox(self) -> None:
         """Return to inbox screen if opened from there."""
         if self._back_to_inbox:
-            self.app.pop_screen()
+            self._pop_to_inbox()
+
+    def _pop_to_inbox(self) -> None:
+        """Pop back to inbox, refreshing it."""
+        from .inbox_screen import InboxScreen
+        for screen in self.app.screen_stack:
+            if isinstance(screen, InboxScreen):
+                screen._refresh_inbox()
+                break
+        self.app.pop_screen()
 
     def _quit_app(self) -> None:
         """Show quit confirmation footer."""

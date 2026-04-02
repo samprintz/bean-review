@@ -215,3 +215,43 @@ async def test_open_pending_entry_switches_to_transaction_list(
 
         assert beancount.exists()
         assert isinstance(pilot.app.screen, TransactionListScreen)
+
+
+@pytest.mark.asyncio
+async def test_returning_from_transaction_list_refreshes_inbox(
+    tmp_path: Path,
+) -> None:
+    """Returning from TransactionListScreen must refresh the inbox."""
+    csv = tmp_path / "bank.csv"
+    beancount = tmp_path / "bank.csv.beancount"
+    csv.touch()
+    beancount.write_text(
+        '2026-01-01 * "Shop" ""\n'
+        "  Expenses:Food  10.00 EUR\n"
+        "  Assets:Checking  -10.00 EUR\n"
+    )
+
+    config = Config()
+    app = ReviewerApp(config, inbox_dir=str(tmp_path))
+
+    async with app.run_test() as pilot:
+        screen = pilot.app.screen
+        assert isinstance(screen, InboxScreen)
+
+        # Open the reviewable entry
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(pilot.app.screen, TransactionListScreen)
+
+        # Add a new file to the inbox while on the transaction list screen
+        new_csv = tmp_path / "new-import.csv"
+        new_csv.touch()
+
+        # Return to inbox via h key
+        await pilot.press("h")
+        await pilot.pause()
+
+        assert isinstance(pilot.app.screen, InboxScreen)
+        items = list(pilot.app.screen.query(InboxListItem))
+        display_names = [item.entry.display_name for item in items]
+        assert "new-import.csv" in display_names
